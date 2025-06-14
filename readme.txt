@@ -7,9 +7,12 @@ Stable tag: 1.0.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
 AI-powered database optimization plugin that analyzes and optimizes your WordPress database for peak performance.
+
 Description
 AI Database Optimizer uses advanced artificial intelligence techniques to analyze your WordPress database structure, query patterns, and performance metrics to automatically optimize your database for maximum efficiency.
+
 Key Features
 
 AI-Driven Analysis: Identifies performance bottlenecks and optimization opportunities

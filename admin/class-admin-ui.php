@@ -63,9 +63,9 @@ public function register_assets($hook) {
     // Enqueue Chart.js from CDN
     wp_enqueue_script(
         'chartjs',
-        'https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js',
+        FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_URL . 'admin/js/chart.min.js',
         [],
-        '3.7.0',
+        FULGID_AI_DATABASE_OPTIMIZER_VERSION,
         true
     );
     
@@ -113,7 +113,8 @@ public function render_admin_page() {
                 </svg>
 
             </div>
-            <h1><?php esc_html_e('AI Database Optimizer', 'db_ai_optimizer'); ?></h1>
+            
+            <?php echo '<h1>' . esc_html__('AI Database Optimizer', 'db_ai_optimizer') . '</h1>'; ?>
         </div>
         
         <div class="db_ai_optimizer-main">
@@ -302,7 +303,7 @@ public function render_admin_page() {
 }
 
     /**
-     * Render database metrics
+     * Render database metrics with proper caching and escaping
      */
     private function render_database_metrics() {
         global $wpdb;
@@ -349,7 +350,7 @@ public function render_admin_page() {
         
         <div class="ai-db-status-metric">
             <h3><?php esc_html_e('Tables', 'db_ai_optimizer'); ?></h3>
-            <div class="value"><?php echo esc_html($table_count); ?></div>
+            <div class="value"><?php echo esc_html(number_format($table_count)); ?></div>
             <div class="description"><?php esc_html_e('WordPress tables', 'db_ai_optimizer'); ?></div>
         </div>
         
@@ -386,14 +387,26 @@ public function render_admin_page() {
         
         $score = 100; // Start with perfect score
         
-        // Check for overhead
-        $tables_with_overhead = $wpdb->get_results("
-            SELECT TABLE_NAME, DATA_FREE
-            FROM information_schema.TABLES 
-            WHERE TABLE_SCHEMA = '" . DB_NAME . "' 
-            AND TABLE_NAME LIKE '{$wpdb->prefix}%'
-            AND DATA_FREE > 0
-        ");
+        // Check for overhead with caching
+        $cache_key = 'tables_with_overhead';
+        $tables_with_overhead = wp_cache_get($cache_key, $this->cache_group);
+        
+        if (false === $tables_with_overhead) {
+            $tables_with_overhead = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                $wpdb->prepare(
+                    "
+                    SELECT TABLE_NAME, DATA_FREE
+                    FROM information_schema.TABLES 
+                    WHERE TABLE_SCHEMA = %s 
+                    AND TABLE_NAME LIKE %s 
+                    AND DATA_FREE > 0
+                    ",
+                    DB_NAME,
+                    $wpdb->esc_like( $wpdb->prefix ) . '%'
+                )
+            );
+            wp_cache_set($cache_key, $tables_with_overhead, $this->cache_group, $this->cache_expiry);
+        }
         
         $total_overhead = 0;
         foreach ($tables_with_overhead as $table) {
@@ -416,8 +429,22 @@ public function render_admin_page() {
         
         $missing_indexes = 0;
         foreach ($important_indexes as $table => $columns) {
+            $sanitized_table = sanitize_key($table);
+            
             foreach ($columns as $column) {
-                $index_exists = $wpdb->get_results("SHOW INDEX FROM {$table} WHERE Column_name = '{$column}'");
+                $sanitized_column = sanitize_key($column);
+                
+                // Cache index checks
+                $index_cache_key = 'index_' . $sanitized_table . '_' . $sanitized_column;
+                $index_exists = wp_cache_get($index_cache_key, $this->cache_group);
+                
+                if (false === $index_exists) {
+                    $index_exists = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.NotPrepared
+                        "SHOW INDEX FROM `" . esc_sql($sanitized_table) . "` WHERE Column_name = '" . esc_sql($sanitized_column) . "'"
+                    );
+                    wp_cache_set($index_cache_key, $index_exists, $this->cache_group, $this->cache_expiry);
+                }
+                
                 if (empty($index_exists)) {
                     $missing_indexes++;
                 }
@@ -427,12 +454,18 @@ public function render_admin_page() {
         // Reduce score based on missing indexes
         $score -= ($missing_indexes * 5);
         
-        // Check for transient buildup
-        $transient_count = $wpdb->get_var("
-            SELECT COUNT(*) 
-            FROM {$wpdb->options} 
-            WHERE option_name LIKE '%_transient_%'
-        ");
+        // Check for transient buildup with caching
+        $transient_cache_key = 'transient_count';
+        $transient_count = wp_cache_get($transient_cache_key, $this->cache_group);
+
+        if (false === $transient_count) {
+            $transient_count = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                SELECT COUNT(*) 
+                FROM {$wpdb->options} 
+                WHERE option_name LIKE '%_transient_%'
+            ");
+            wp_cache_set($transient_cache_key, $transient_count, $this->cache_group, $this->cache_expiry);
+        }
         
         if ($transient_count > 1000) {
             $score -= 15;
@@ -442,12 +475,18 @@ public function render_admin_page() {
             $score -= 5;
         }
         
-        // Check for revision buildup
-        $revision_count = $wpdb->get_var("
-            SELECT COUNT(*) 
-            FROM {$wpdb->posts} 
-            WHERE post_type = 'revision'
-        ");
+        // Check for revision buildup with caching
+        $revision_cache_key = 'revision_count';
+        $revision_count = wp_cache_get($revision_cache_key, $this->cache_group);
+
+        if (false === $revision_count) {
+            $revision_count = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                SELECT COUNT(*) 
+                FROM {$wpdb->posts} 
+                WHERE post_type = 'revision'
+            ");
+            wp_cache_set($revision_count, $revision_count, $this->cache_group, 300); // Cache for 5 minutes
+        }
         
         if ($revision_count > 1000) {
             $score -= 15;
@@ -457,12 +496,18 @@ public function render_admin_page() {
             $score -= 5;
         }
         
-        // Check autoloaded options size
-        $autoload_size = $wpdb->get_var("
-            SELECT SUM(LENGTH(option_value)) 
-            FROM {$wpdb->options} 
-            WHERE autoload = 'yes'
-        ");
+        // Check autoloaded options size with caching
+        $autoload_cache_key = 'autoload_size';
+        $autoload_size = wp_cache_get($autoload_cache_key, $this->cache_group);
+
+        if (false === $autoload_size) {
+            $autoload_size = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                SELECT SUM(LENGTH(option_value)) 
+                FROM {$wpdb->options} 
+                WHERE autoload = 'yes'
+            ");
+            wp_cache_set($autoload_size, $autoload_size, $this->cache_group, $this->cache_expiry);
+        }
         
         if ($autoload_size > 3 * 1024 * 1024) { // More than 3MB
             $score -= 20;
@@ -476,236 +521,280 @@ public function render_admin_page() {
         return $score;
     }
 
-/**
- * Render AI insights
- */
-private function render_ai_insights() {
-    global $wpdb;
-    
-    // Get insights based on database status
-    $insights = [];
-    
-    // Check for tables with overhead
-    $tables_with_overhead = $wpdb->get_results("
-        SELECT TABLE_NAME, DATA_FREE
-        FROM information_schema.TABLES 
-        WHERE TABLE_SCHEMA = '" . DB_NAME . "' 
-        AND TABLE_NAME LIKE '{$wpdb->prefix}%'
-        AND DATA_FREE > 1024 * 1024
-        ORDER BY DATA_FREE DESC
-        LIMIT 3
-    ");
-    
-    if (!empty($tables_with_overhead)) {
-        $insight = esc_html(__('Tables with significant overhead detected', 'db_ai_optimizer'));
-        $details = sprintf(
-            __('Optimizing the %1$s table could free up %2$s of space.', 'db_ai_optimizer'),
-            '<strong>' . esc_html($tables_with_overhead[0]->TABLE_NAME) . '</strong>',
-            '<strong>' . size_format($tables_with_overhead[0]->DATA_FREE) . '</strong>'
-        );
-        $insights[] = [
-            'title' => $insight,
-            'details' => $details,
-            'type' => 'warning',
-            'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
-        ];
+
+    /**
+     * Render AI insights
+     */
+    private function render_ai_insights() {
+        global $wpdb;
+        
+        // Get insights based on database status
+        $insights = [];
+        
+        // Check for tables with overhead - with caching
+        $cache_key = 'tables_with_overhead_insights';
+        $tables_with_overhead = wp_cache_get($cache_key, $this->cache_group);
+        
+        if (false === $tables_with_overhead) {
+            $tables_with_overhead = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                "SELECT TABLE_NAME, DATA_FREE
+                FROM information_schema.TABLES 
+                WHERE TABLE_SCHEMA = %s 
+                AND TABLE_NAME LIKE %s
+                AND DATA_FREE > 0",
+                DB_NAME,
+                $wpdb->esc_like($wpdb->prefix) . '%'
+            ));
+            wp_cache_set($cache_key, $tables_with_overhead, $this->cache_group, $this->cache_expiry);
+        }
+        
+        if (!empty($tables_with_overhead)) {
+            $insight = esc_html__('Tables with significant overhead detected', 'db_ai_optimizer');
+            $details = wp_kses_post(sprintf(
+                /* translators: 1: Table name, 2: Overhead size */
+                __('Optimizing the %1$s table could free up %2$s of space.', 'db_ai_optimizer'),
+                '<strong>' . esc_html($tables_with_overhead[0]->TABLE_NAME) . '</strong>',
+                '<strong>' . size_format($tables_with_overhead[0]->DATA_FREE) . '</strong>'
+            ));
+            $insights[] = [
+                'title' => $insight,
+                'details' => $details,
+                'type' => 'warning',
+                'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+            ];
+        }
+        
+        // Check for missing important indexes
+        $missing_index_tables = [];
+        
+        // Cache index checks
+        $posts_index_cache_key = 'posts_post_type_index';
+        $index_check = wp_cache_get($posts_index_cache_key, $this->cache_group);
+        
+        if (false === $index_check) {
+            $index_check = $wpdb->get_var("SHOW INDEX FROM {$wpdb->posts} WHERE Column_name = 'post_type'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            wp_cache_set($posts_index_cache_key, $index_check, $this->cache_group, $this->cache_expiry);
+        }
+        
+        if (empty($index_check)) {
+            $missing_index_tables[] = $wpdb->posts;
+        }
+        
+        $meta_index_cache_key = 'postmeta_meta_key_index';
+        $index_check = wp_cache_get($meta_index_cache_key, $this->cache_group);
+        
+        if (false === $index_check) {
+            $index_check = $wpdb->get_var("SHOW INDEX FROM {$wpdb->postmeta} WHERE Column_name = 'meta_key'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            wp_cache_set($meta_index_cache_key, $index_check, $this->cache_group, $this->cache_expiry);
+        }
+        
+        if (empty($index_check)) {
+            $missing_index_tables[] = $wpdb->postmeta;
+        }
+        
+        if (!empty($missing_index_tables)) {
+            $insight = __('Missing important database indexes', 'db_ai_optimizer');
+            $details = wp_kses_post(sprintf(
+                /* translators: %s is the comma-separated list of table names */
+                __('Adding indexes to %s could improve query performance by up to 30%%.', 'db_ai_optimizer'),
+                '<strong>' . implode(', ', $missing_index_tables) . '</strong>'
+            ));
+            $insights[] = [
+                'title' => $insight,
+                'details' => $details,
+                'type' => 'error',
+                'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+            ];
+        }
+        
+        // Check for transient buildup with caching
+        $transient_cache_key = 'transient_count_insights';
+        $transient_count = wp_cache_get($transient_cache_key, $this->cache_group);
+
+        if (false === $transient_count) {
+            $transient_count = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                SELECT COUNT(*) 
+                FROM {$wpdb->options} 
+                WHERE option_name LIKE '%_transient_%'
+            ");
+            wp_cache_set($transient_cache_key, $transient_count, $this->cache_group, $this->cache_expiry);
+        }
+
+        
+        if ($transient_count > 200) {
+            $insight = __('High number of transient options', 'db_ai_optimizer');
+            $details = wp_kses_post(sprintf(
+                /* translators: %s is the number of transient options */
+                __('Found %s transient options in your database. Cleaning expired transients could improve performance.', 'db_ai_optimizer'),
+                '<strong>' . number_format($transient_count) . '</strong>'
+            ));
+            $insights[] = [
+                'title' => $insight,
+                'details' => $details,
+                'type' => 'warning',
+                'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>'
+            ];
+        }
+        
+        // Check for revision buildup with caching
+        $revision_cache_key = 'revision_count_insights';
+        $revision_count = wp_cache_get($revision_cache_key, $this->cache_group);
+
+        if (false === $revision_count) {
+            $revision_count = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                SELECT COUNT(*) 
+                FROM {$wpdb->posts} 
+                WHERE post_type = 'revision'
+            ");
+            wp_cache_set($revision_cache_key, $revision_count, $this->cache_group, $this->cache_expiry);
+        }
+
+        
+        if ($revision_count > 200) {
+            $insight = __('High number of post revisions', 'db_ai_optimizer');
+            $details = wp_kses_post(sprintf(
+                /* translators: %s is the number of post revisions */
+                __('Your database contains %s post revisions. Consider limiting or removing old revisions.', 'db_ai_optimizer'),
+                '<strong>' . number_format($revision_count) . '</strong>'
+            ));
+            $insights[] = [
+                'title' => $insight,
+                'details' => $details,
+                'type' => 'warning',
+                'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>'
+            ];
+        }
+        
+        // Check autoloaded options size with caching
+        $autoload_cache_key = 'autoload_size_insights';
+        $autoload_size = wp_cache_get($autoload_cache_key, $this->cache_group);
+
+        if (false === $autoload_size) {
+            $autoload_size = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                SELECT SUM(LENGTH(option_value)) 
+                FROM {$wpdb->options} 
+                WHERE autoload = 'yes'
+            ");
+            wp_cache_set($autoload_cache_key, $autoload_size, $this->cache_group, $this->cache_expiry);
+        }
+
+        
+        if ($autoload_size > 1 * 1024 * 1024) { // More than 1MB
+            $insight = __('Large autoloaded options detected', 'db_ai_optimizer');
+            $details = wp_kses_post(sprintf(
+                /* translators: %s is the size of autoloaded options */
+                __('Your site loads %s of autoloaded options on every page. This can slow down your site.', 'db_ai_optimizer'),
+                '<strong>' . size_format($autoload_size) . '</strong>'
+            ));
+            $insights[] = [
+                'title' => $insight,
+                'details' => $details,
+                'type' => 'error',
+                'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>'
+            ];
+        }
+        
+        // Add generic insight if none found
+        if (empty($insights)) {
+            $insights[] = [
+                'title' => __('No significant issues detected', 'db_ai_optimizer'),
+                'details' => __('Your database appears to be in good health. Regular maintenance is still recommended.', 'db_ai_optimizer'),
+                'type' => 'success',
+                'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+            ];
+        }
+        
+        // Display insights
+        echo '<ul class="ai-db-insights-list">';
+        foreach ($insights as $insight) {
+            echo '<li class="ai-db-insight-item ai-db-insight-' . esc_attr($insight['type']) . '">';
+            echo '<div class="ai-db-insight-icon">' . wp_kses_post($insight['icon']) . '</div>';
+            echo '<div class="ai-db-insight-content">';
+            echo '<h3>' . esc_html($insight['title']) . '</h3>';
+            echo '<p>' . wp_kses_post($insight['details']) . '</p>';
+            echo '</div>';
+            echo '</li>';
+        }
+        echo '</ul>';
+        
+        // Add CSS for the enhanced insights styling
+        echo '
+        <style>
+            .ai-db-insights-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .ai-db-insight-item {
+                display: flex;
+                margin-bottom: 16px;
+                padding: 16px;
+                border-radius: 6px;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            
+            .ai-db-insight-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            
+            .ai-db-insight-error {
+                background-color: #FEEFEF;
+                border-left: 4px solid #FF5252;
+            }
+            
+            .ai-db-insight-warning {
+                background-color: #FFF8E1;
+                border-left: 4px solid #FFB300;
+            }
+            
+            .ai-db-insight-success {
+                background-color: #E8F5E9;
+                border-left: 4px solid #4CAF50;
+            }
+            
+            .ai-db-insight-icon {
+                flex: 0 0 40px;
+                margin-right: 16px;
+                display: flex;
+                align-items: flex-start;
+            }
+            
+            .ai-db-insight-error .ai-db-insight-icon svg {
+                color: #FF5252;
+            }
+            
+            .ai-db-insight-warning .ai-db-insight-icon svg {
+                color: #FFB300;
+            }
+            
+            .ai-db-insight-success .ai-db-insight-icon svg {
+                color: #4CAF50;
+            }
+            
+            .ai-db-insight-content {
+                flex: 1;
+            }
+            .ai-db-insight-content
+            {
+            padding:0px;
+            }
+            
+            .ai-db-insight-content h3 {
+                margin-top: 0;
+                margin-bottom: 8px;
+                font-size: 16px;
+                font-weight: 600;
+            }
+            
+            .ai-db-insight-content p {
+                margin: 0;
+                color: #555;
+            }
+        </style>
+        ';
     }
-    
-    // Check for missing important indexes
-    $missing_index_tables = [];
-    
-    $index_check = $wpdb->get_var("SHOW INDEX FROM {$wpdb->posts} WHERE Column_name = 'post_type'");
-    if (empty($index_check)) {
-        $missing_index_tables[] = $wpdb->posts;
-    }
-    
-    $index_check = $wpdb->get_var("SHOW INDEX FROM {$wpdb->postmeta} WHERE Column_name = 'meta_key'");
-    if (empty($index_check)) {
-        $missing_index_tables[] = $wpdb->postmeta;
-    }
-    
-    if (!empty($missing_index_tables)) {
-        $insight = __('Missing important database indexes', 'db_ai_optimizer');
-        $details = sprintf(
-            /* translators: %s is the comma-separated list of table names */
-            __('Adding indexes to %s could improve query performance by up to 30%%.', 'db_ai_optimizer'),
-            '<strong>' . implode(', ', $missing_index_tables) . '</strong>'
-        );
-        $insights[] = [
-            'title' => $insight,
-            'details' => $details,
-            'type' => 'error',
-            'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
-        ];
-    }
-    
-    // Check for transient buildup
-    $transient_count = $wpdb->get_var("
-        SELECT COUNT(*) 
-        FROM {$wpdb->options} 
-        WHERE option_name LIKE '%_transient_%'
-    ");
-    
-    if ($transient_count > 200) {
-        $insight = __('High number of transient options', 'db_ai_optimizer');
-        $details = sprintf(
-            /* translators: %s is the number of transient options */
-            __('Found %s transient options in your database. Cleaning expired transients could improve performance.', 'db_ai_optimizer'),
-            '<strong>' . number_format($transient_count) . '</strong>'
-        );
-        $insights[] = [
-            'title' => $insight,
-            'details' => $details,
-            'type' => 'warning',
-            'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>'
-        ];
-    }
-    
-    // Check for revision buildup
-    $revision_count = $wpdb->get_var("
-        SELECT COUNT(*) 
-        FROM {$wpdb->posts} 
-        WHERE post_type = 'revision'
-    ");
-    
-    if ($revision_count > 200) {
-        $insight = __('High number of post revisions', 'db_ai_optimizer');
-        $details = sprintf(
-            /* translators: %s is the number of post revisions */
-            __('Your database contains %s post revisions. Consider limiting or removing old revisions.', 'db_ai_optimizer'),
-            '<strong>' . number_format($revision_count) . '</strong>'
-        );
-        $insights[] = [
-            'title' => $insight,
-            'details' => $details,
-            'type' => 'warning',
-            'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>'
-        ];
-    }
-    
-    // Check autoloaded options size
-    $autoload_size = $wpdb->get_var("
-        SELECT SUM(LENGTH(option_value)) 
-        FROM {$wpdb->options} 
-        WHERE autoload = 'yes'
-    ");
-    
-    if ($autoload_size > 1 * 1024 * 1024) { // More than 1MB
-        $insight = __('Large autoloaded options detected', 'db_ai_optimizer');
-        $details = sprintf(
-            /* translators: %s is the size of autoloaded options */
-            __('Your site loads %s of autoloaded options on every page. This can slow down your site.', 'db_ai_optimizer'),
-            '<strong>' . size_format($autoload_size) . '</strong>'
-        );
-        $insights[] = [
-            'title' => $insight,
-            'details' => $details,
-            'type' => 'error',
-            'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>'
-        ];
-    }
-    
-    // Add generic insight if none found
-    if (empty($insights)) {
-        $insights[] = [
-            'title' => __('No significant issues detected', 'db_ai_optimizer'),
-            'details' => __('Your database appears to be in good health. Regular maintenance is still recommended.', 'db_ai_optimizer'),
-            'type' => 'success',
-            'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
-        ];
-    }
-    
-    // Display insights
-    echo '<ul class="ai-db-insights-list">';
-    foreach ($insights as $insight) {
-        echo '<li class="ai-db-insight-item ai-db-insight-' . esc_attr($insight['type']) . '">';
-        echo '<div class="ai-db-insight-icon">' . wp_kses_post($insight['icon']) . '</div>';
-        echo '<div class="ai-db-insight-content">';
-        echo '<h3>' . esc_html($insight['title']) . '</h3>';
-        echo '<p>' . wp_kses_post($insight['details']) . '</p>';
-        echo '</div>';
-        echo '</li>';
-    }
-    echo '</ul>';
-    
-    // Add CSS for the enhanced insights styling
-    echo '
-    <style>
-        .ai-db-insights-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .ai-db-insight-item {
-            display: flex;
-            margin-bottom: 16px;
-            padding: 16px;
-            border-radius: 6px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .ai-db-insight-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        .ai-db-insight-error {
-            background-color: #FEEFEF;
-            border-left: 4px solid #FF5252;
-        }
-        
-        .ai-db-insight-warning {
-            background-color: #FFF8E1;
-            border-left: 4px solid #FFB300;
-        }
-        
-        .ai-db-insight-success {
-            background-color: #E8F5E9;
-            border-left: 4px solid #4CAF50;
-        }
-        
-        .ai-db-insight-icon {
-            flex: 0 0 40px;
-            margin-right: 16px;
-            display: flex;
-            align-items: flex-start;
-        }
-        
-        .ai-db-insight-error .ai-db-insight-icon svg {
-            color: #FF5252;
-        }
-        
-        .ai-db-insight-warning .ai-db-insight-icon svg {
-            color: #FFB300;
-        }
-        
-        .ai-db-insight-success .ai-db-insight-icon svg {
-            color: #4CAF50;
-        }
-        
-        .ai-db-insight-content {
-            flex: 1;
-        }
-        .ai-db-insight-content
-        {
-        padding:0px;
-        }
-        
-        .ai-db-insight-content h3 {
-            margin-top: 0;
-            margin-bottom: 8px;
-            font-size: 16px;
-            font-weight: 600;
-        }
-        
-        .ai-db-insight-content p {
-            margin: 0;
-            color: #555;
-        }
-    </style>
-    ';
-}
 
 
 
@@ -845,13 +934,12 @@ private function render_ai_insights() {
             <div class="ai-db-optimization-summary">
                 <p>
                     <?php 
-                    /* translators: %s is the performance improvement percentage */
-                    
-                    printf(
-                        __('Database optimization completed with estimated %s%% performance improvement.', 'db_ai_optimizer'),
-                        '<strong>' . number_format($results['performance_impact'], 2) . '</strong>'
-                    ); 
-                    ?>
+                        printf(
+                            /* translators: %s is the performance improvement percentage */
+                            esc_html__('Database optimization completed with estimated %s%% performance improvement.', 'db_ai_optimizer'),
+                            '<strong>' . esc_html(number_format($results['performance_impact'], 2)) . '</strong>'
+                        ); 
+                        ?>
                 </p>
                 
                 <div class="ai-db-optimization-metrics">
@@ -907,12 +995,27 @@ private function render_ai_insights() {
     private function render_database_status() {
         global $wpdb;
         
-        // Get database size
-        $db_size = $wpdb->get_row("SELECT SUM(data_length + index_length) as size FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "'");
+        // Get database size with caching
+        $cache_key = 'database_size_status';
+        $db_size = wp_cache_get($cache_key, $this->cache_group);
         
-        // Get table count
-        $tables = $wpdb->get_results("SHOW TABLES LIKE '{$wpdb->prefix}%'");
-        $table_count = count($tables);
+        if (false === $db_size) {
+            $db_size = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                "SELECT SUM(data_length + index_length) as size FROM information_schema.TABLES WHERE table_schema = %s",
+                DB_NAME
+            ));
+            wp_cache_set($cache_key, $db_size, $this->cache_group, $this->cache_expiry);
+        }
+
+        // Get table count with caching
+        $tables_cache_key = 'table_count_status';
+        $table_count = wp_cache_get($tables_cache_key, $this->cache_group);
+        
+        if (false === $table_count) {
+            $tables = $wpdb->get_results("SHOW TABLES LIKE '{$wpdb->prefix}%'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            $table_count = count($tables);
+            wp_cache_set($tables_cache_key, $table_count, $this->cache_group, $this->cache_expiry);
+        }
         
         // Get last optimization time
         $settings = get_option('fulgid_ai_db_optimizer_settings');
@@ -926,11 +1029,11 @@ private function render_ai_insights() {
             </li>
             <li>
                 <span class="ai-db-status-label"><?php esc_html_e('Tables:', 'db_ai_optimizer'); ?></span>
-                <span class="ai-db-status-value"><?php echo $table_count; ?></span>
+                <div class="ai-db-status-value"><?php echo esc_html(number_format($table_count)); ?></div>
             </li>
             <li>
                 <span class="ai-db-status-label"><?php esc_html_e('Last Optimization:', 'db_ai_optimizer'); ?></span>
-                <span class="ai-db-status-value"><?php echo $last_optimization; ?></span>
+                <span class="ai-db-status-value"><?php echo esc_html($last_optimization); ?></span>
             </li>
         </ul>
         <?php
@@ -943,13 +1046,23 @@ private function render_ai_insights() {
         global $wpdb;
         
         $table_name = $wpdb->prefix . 'ai_db_optimization_history';
-        $history = $wpdb->get_results("SELECT * FROM $table_name ORDER BY optimization_time DESC LIMIT 5");
         
-        if (empty($history)) {
-            echo '<p>' . __('No optimization history available.', 'db_ai_optimizer') . '</p>';
-            return;
+        // Add caching for optimization history
+        $cache_key = 'optimization_history';
+        $history = wp_cache_get($cache_key, $this->cache_group);
+        
+        if (false === $history) {
+            $history = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                "SELECT * FROM `" . esc_sql($table_name) . "` ORDER BY optimization_time DESC LIMIT %d",
+                5
+            ));
+            wp_cache_set($cache_key, $history, $this->cache_group, 300); // Cache for 5 minutes
         }
         
+        if (empty($history)) {
+            echo '<p>' . esc_html__('No optimization history available.', 'db_ai_optimizer') . '</p>';
+            return;
+        }
         ?>
         <table class="">
             <thead>
@@ -963,17 +1076,50 @@ private function render_ai_insights() {
             <tbody>
                 <?php foreach ($history as $entry): ?>
                     <tr>
-                        <td><?php echo date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->optimization_time)); ?></td>
-                        <td><?php echo ucfirst($entry->optimization_type); ?></td>
+                        <td><?php echo esc_html( date_i18n( get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->optimization_time) ) ); ?></td>
+
+                        <td><?php echo esc_html( ucfirst( $entry->optimization_type ) ); ?></td>
                         <td><?php echo count(json_decode($entry->tables_affected)); ?></td>
-                        <td><?php echo round($entry->performance_impact, 2) . '%'; ?></td>
+                        <td><?php echo esc_html(round($entry->performance_impact, 2)) . '%'; ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
         <?php
     }
-    
+
+    /**
+     * Clear all caches when optimization is performed
+     */
+    private function clear_all_caches() {
+        wp_cache_delete('db_metrics', $this->cache_group);
+        wp_cache_delete('tables_with_overhead', $this->cache_group);
+        wp_cache_delete('transient_count', $this->cache_group);
+        wp_cache_delete('revision_count', $this->cache_group);
+        wp_cache_delete('autoload_size', $this->cache_group);
+        wp_cache_delete('table_statistics', $this->cache_group);
+        wp_cache_delete('database_size_status', $this->cache_group);
+        wp_cache_delete('table_count_status', $this->cache_group);
+        wp_cache_delete('optimization_history', $this->cache_group);
+        wp_cache_delete('tables_with_overhead_insights', $this->cache_group);
+        wp_cache_delete('transient_count_insights', $this->cache_group);
+        wp_cache_delete('revision_count_insights', $this->cache_group);
+        wp_cache_delete('autoload_size_insights', $this->cache_group);
+        
+        // Clear index cache keys
+        global $wpdb;
+        $tables = [$wpdb->posts, $wpdb->postmeta, $wpdb->comments];
+        foreach ($tables as $table) {
+            $sanitized_table = sanitize_key($table);
+            wp_cache_delete('posts_post_type_index', $this->cache_group);
+            wp_cache_delete('postmeta_meta_key_index', $this->cache_group);
+            // Clear any index cache keys
+            wp_cache_delete('index_' . $sanitized_table . '_post_type', $this->cache_group);
+            wp_cache_delete('index_' . $sanitized_table . '_meta_key', $this->cache_group);
+        }
+    }
+
+
     /**
      * AJAX handler for database analysis
      */
@@ -996,7 +1142,7 @@ private function render_ai_insights() {
     }
     
     /**
-     * AJAX handler for database optimization
+     * AJAX handler for database optimization - add cache clearing
      */
     public function ajax_optimize_database() {
         check_ajax_referer('fulgid_ai_db_optimizer_nonce', 'nonce');
@@ -1005,8 +1151,8 @@ private function render_ai_insights() {
             wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'db_ai_optimizer')]);
         }
         
-        $analysis = isset($_POST['analysis']) ? json_decode(wp_unslash(sanitize_text_field($_POST['analysis'])), true) : null;
-        
+        $analysis = isset($_POST['analysis']) ? json_decode(wp_unslash(sanitize_text_field(wp_unslash($_POST['analysis']))), true) : null;
+
         if (!$analysis) {
             wp_send_json_error(['message' => __('No analysis data provided.', 'db_ai_optimizer')]);
         }
@@ -1016,6 +1162,9 @@ private function render_ai_insights() {
         $level = isset($settings['optimization_level']) ? $settings['optimization_level'] : 'medium';
         
         $results = $this->optimization_engine->optimize_database($analysis, $level);
+        
+        // Clear all caches after optimization
+        $this->clear_all_caches();
         
         // Format the results for display
         $formatted_results = $this->format_optimization_results($results);
@@ -1029,7 +1178,7 @@ private function render_ai_insights() {
             'html' => $formatted_results,
         ]);
     }
-    
+        
 
     /**
  * AJAX handler for collecting database performance data
@@ -1088,30 +1237,52 @@ private function collect_slow_queries() {
     ];
     
     // Try to get slow query log if enabled on the server
-    // This requires appropriate MySQL privileges
     try {
-        // Check if slow query log is enabled
-        $log_status = $wpdb->get_row("SHOW VARIABLES LIKE 'slow_query_log'");
+        // Check if slow query log is enabled - with caching
+        $log_status_cache_key = 'slow_query_log_status';
+        $log_status = wp_cache_get($log_status_cache_key, $this->cache_group);
+        
+        if (false === $log_status) {
+            $log_status = $wpdb->get_row("SHOW VARIABLES LIKE 'slow_query_log'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            wp_cache_set($log_status_cache_key, $log_status, $this->cache_group, 3600); // Cache for 1 hour
+        }
         
         if ($log_status && $log_status->Value == 'ON') {
             $result['available'] = true;
             
-            // Get the location of the slow query log
-            $log_file = $wpdb->get_row("SHOW VARIABLES LIKE 'slow_query_log_file'");
+            // Get the location of the slow query log - with caching
+            $log_file_cache_key = 'slow_query_log_file';
+            $log_file = wp_cache_get($log_file_cache_key, $this->cache_group);
+            
+            if (false === $log_file) {
+                $log_file = $wpdb->get_row("SHOW VARIABLES LIKE 'slow_query_log_file'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                wp_cache_set($log_file_cache_key, $log_file, $this->cache_group, 3600); // Cache for 1 hour
+            }
             $result['log_file'] = $log_file->Value;
             
-            // Get slow query time threshold
-            $log_threshold = $wpdb->get_row("SHOW VARIABLES LIKE 'long_query_time'");
+            // Get slow query time threshold - with caching
+            $log_threshold_cache_key = 'long_query_time';
+            $log_threshold = wp_cache_get($log_threshold_cache_key, $this->cache_group);
+            
+            if (false === $log_threshold) {
+                $log_threshold = $wpdb->get_row("SHOW VARIABLES LIKE 'long_query_time'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                wp_cache_set($log_threshold_cache_key, $log_threshold, $this->cache_group, 3600); // Cache for 1 hour
+            }
             $result['threshold'] = $log_threshold->Value;
             
-            // Try to get the most recent slow queries
-            // This is an approximation as we can't directly read the log file via PHP in most cases
-            $slow_queries = $wpdb->get_results("
-                SELECT * FROM information_schema.PROCESSLIST 
-                WHERE TIME > 2 
-                ORDER BY TIME DESC 
-                LIMIT 10
-            ");
+            // Try to get the most recent slow queries - with short cache
+            $slow_queries_cache_key = 'recent_slow_queries';
+            $slow_queries = wp_cache_get($slow_queries_cache_key, $this->cache_group);
+            
+            if (false === $slow_queries) {
+                $slow_queries = $wpdb->get_results(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                    SELECT * FROM information_schema.PROCESSLIST 
+                    WHERE TIME > 2 
+                    ORDER BY TIME DESC 
+                    LIMIT 10
+                ");
+                wp_cache_set($slow_queries_cache_key, $slow_queries, $this->cache_group, 60); // Cache for 1 minute
+            }
             
             if ($slow_queries) {
                 foreach ($slow_queries as $query) {
@@ -1154,28 +1325,44 @@ private function collect_slow_queries() {
     return $result;
 }
 
+
 /**
  * Collect statistics about database tables
  */
 private function collect_table_statistics() {
     global $wpdb;
     
-    $tables = $wpdb->get_col("SHOW TABLES LIKE '{$wpdb->prefix}%'");
+    $cache_key = 'table_statistics';
+    $cached_data = wp_cache_get($cache_key, $this->cache_group);
+    
+    if (false !== $cached_data) {
+        return $cached_data;
+    }
+    
+    $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        "SHOW TABLES LIKE %s",
+        $wpdb->esc_like($wpdb->prefix) . '%'
+    ));
+    
     $statistics = [];
     
     foreach ($tables as $table) {
         // Get basic table information
-        $status = $wpdb->get_row("SHOW TABLE STATUS LIKE '$table'");
-        
+        $status = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            "SHOW TABLE STATUS LIKE %s",
+            $table
+        ));
+
         // Get query statistics if available
         $query_stats = null;
         try {
             // This requires MySQL performance_schema to be enabled
-            $query_stats = $wpdb->get_row("
-                SELECT COUNT(*) as query_count, SUM(sum_timer_wait)/1000000000000 as total_time
+            $query_stats = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                "SELECT COUNT(*) as query_count, SUM(sum_timer_wait)/1000000000000 as total_time
                 FROM performance_schema.table_io_waits_summary_by_table 
-                WHERE OBJECT_SCHEMA = DATABASE() AND OBJECT_NAME = '$table'
-            ");
+                WHERE OBJECT_SCHEMA = DATABASE() AND OBJECT_NAME = %s",
+                $table
+            ));
         } catch (Exception $e) {
             // Performance schema not available
         }
@@ -1197,9 +1384,16 @@ private function collect_table_statistics() {
         ];
     }
     
+    // Cache the results
+    wp_cache_set($cache_key, $statistics, $this->cache_group, $this->cache_expiry);
+    
     return $statistics;
 }
 
+/**
+ * Collect server information
+ */
+// Around line 1279 - Fix collect_server_information method
 /**
  * Collect server information
  */
@@ -1228,9 +1422,11 @@ private function collect_server_information() {
         'read_buffer_size',
         'read_rnd_buffer_size'
     ];
-    
-    $vars_string = implode("','", $important_vars);
-    $variables = $wpdb->get_results("SHOW VARIABLES WHERE Variable_name IN ('$vars_string')");
+
+    // Create placeholders and prepare the query properly
+    $placeholders = implode(',', array_fill(0, count($important_vars), '%s'));
+    $query = "SHOW VARIABLES WHERE Variable_name IN ($placeholders)";
+    $variables = $wpdb->get_results($wpdb->prepare($query, ...$important_vars)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
     
     foreach ($variables as $var) {
         $server_info['variables'][$var->Variable_name] = $var->Value;
@@ -1256,8 +1452,10 @@ private function collect_server_information() {
         'Threads_running'
     ];
     
-    $status_string = implode("','", $important_status);
-    $status = $wpdb->get_results("SHOW STATUS WHERE Variable_name IN ('$status_string')");
+    // Create placeholders for status query
+    $status_placeholders = implode(',', array_fill(0, count($important_status), '%s'));
+    $status_query = "SHOW STATUS WHERE Variable_name IN ($status_placeholders)";
+    $status = $wpdb->get_results($wpdb->prepare($status_query, ...$important_status)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
     
     foreach ($status as $stat) {
         $server_info['status'][$stat->Variable_name] = $stat->Value;
@@ -1279,37 +1477,58 @@ private function collect_query_cache_information() {
     ];
     
     try {
-        // Check if query cache is enabled
-        $query_cache_type = $wpdb->get_row("SHOW VARIABLES LIKE 'query_cache_type'");
+        // Check if query cache is enabled - with caching
+        $query_cache_type_key = 'query_cache_type';
+        $query_cache_type = wp_cache_get($query_cache_type_key, $this->cache_group);
+        
+        if (false === $query_cache_type) {
+            $query_cache_type = $wpdb->get_row("SHOW VARIABLES LIKE 'query_cache_type'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            wp_cache_set($query_cache_type_key, $query_cache_type, $this->cache_group, 3600); // Cache for 1 hour
+        }
         $cache_info['enabled'] = ($query_cache_type && $query_cache_type->Value != 'OFF');
         
         if ($cache_info['enabled']) {
-            // Get query cache size
-            $cache_size = $wpdb->get_row("SHOW VARIABLES LIKE 'query_cache_size'");
-            $cache_info['size'] = $cache_size->Value;
+            // Get query cache size - with caching
+            $cache_size_key = 'query_cache_size_var';
+            $cache_size = wp_cache_get($cache_size_key, $this->cache_group);
             
-            // Get query cache usage statistics
+            if (false === $cache_size) {
+                $cache_size = $wpdb->get_row("SHOW VARIABLES LIKE 'query_cache_size'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                wp_cache_set($cache_size_key, $cache_size, $this->cache_group, 3600); // Cache for 1 hour
+            }
+            $cache_info['size'] = $cache_size->Value;
+
+            // Get query cache usage statistics with caching
             $cache_stats = [
                 'query_cache_free_memory',
                 'query_cache_hits',
                 'query_cache_inserts',
                 'query_cache_lowmem_prunes',
                 'query_cache_queries_in_cache',
-                'query_cache_size'
+                'query_cache_size',
             ];
+
+            $cache_stats_key = 'query_cache_stats';
+            $status = wp_cache_get($cache_stats_key, $this->cache_group);
             
-            $stats_string = implode("','", $cache_stats);
-            $status = $wpdb->get_results("SHOW STATUS WHERE Variable_name IN ('$stats_string')");
-            
+            if (false === $status) {
+                // Create placeholders for each variable name
+                $placeholders = implode(',', array_fill(0, count($cache_stats), '%s'));
+                $query = "SHOW STATUS WHERE Variable_name IN ($placeholders)";
+                $status = $wpdb->get_results($wpdb->prepare($query, ...$cache_stats)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                wp_cache_set($cache_stats_key, $status, $this->cache_group, 300); // Cache for 5 minutes
+            }
+
+            // Process results
             foreach ($status as $stat) {
                 $cache_info['usage'][$stat->Variable_name] = $stat->Value;
             }
-            
+
             // Calculate cache hit ratio if possible
             if (isset($cache_info['usage']['query_cache_hits']) && isset($cache_info['usage']['query_cache_inserts'])) {
                 $hits = intval($cache_info['usage']['query_cache_hits']);
                 $inserts = intval($cache_info['usage']['query_cache_inserts']);
-                
+
                 if ($hits + $inserts > 0) {
                     $cache_info['hit_ratio'] = round(($hits / ($hits + $inserts)) * 100, 2);
                 }
@@ -1322,6 +1541,7 @@ private function collect_query_cache_information() {
     return $cache_info;
 }
 
+   
 /**
  * Collect recent error logs if available
  */
@@ -1489,23 +1709,24 @@ private function format_performance_data($performance_data) {
                                     <td><?php echo esc_html($table); ?></td>
                                     <td><?php echo esc_html($stats['engine']); ?></td>
                                     <td><?php echo number_format($stats['rows']); ?></td>
-                                    <td><?php echo size_format($stats['data_size'] + $stats['index_size']); ?></td>
+                                    <td><?php echo esc_html(size_format($stats['data_size'] + $stats['index_size'])); ?></td>
                                     <td>
                                         <?php 
-                                        echo size_format($stats['overhead']);
-                                        if ($stats['overhead'] > 1024 * 1024) {
-                                            echo ' <span class="ai-db-warning">!</span>';
-                                        }
-                                        ?>
+											echo esc_html( size_format( $stats['overhead'] ) );
+											if ($stats['overhead'] > 1024 * 1024) {
+												echo ' <span class="ai-db-warning">' . esc_html( '!' ) . '</span>';
+											}
+										?>
+
                                     </td>
                                     <?php if (!empty($stats['query_stats'])): ?>
                                     <td><?php echo number_format($stats['query_stats']['query_count']); ?></td>
                                     <td><?php 
-                                        /* translators: %s is the query execution time in seconds */
-                                        echo sprintf(
+                                        echo esc_html(sprintf(
+                                            /* translators: %s is the query execution time in seconds */
                                             __('%ss', 'db_ai_optimizer'),
-                                            esc_html(round($stats['query_stats']['total_time'], 2))
-                                        );
+                                            round($stats['query_stats']['total_time'], 2)
+                                        ));
                                         ?>
                                     </td>
                                     <?php endif; ?>
@@ -1521,15 +1742,16 @@ private function format_performance_data($performance_data) {
                     
                     <?php if ($performance_data['slow_queries']['available']): ?>
                         <p>
-                            <?php 
-                            if (isset($performance_data['slow_queries']['threshold'])) {
-                                /* translators: %s is the slow query threshold time in seconds */
-                                printf(
-                                    __('Slow query threshold: %s seconds', 'db_ai_optimizer'),
-                                    esc_html($performance_data['slow_queries']['threshold'])
-                                );
-                            }
-                            ?>
+
+						<?php 
+						if (isset($performance_data['slow_queries']['threshold'])) {
+							printf(
+								/* translators: %s is the slow query threshold time in seconds */
+								esc_html__('Slow query threshold: %s seconds', 'db_ai_optimizer'),
+								esc_html($performance_data['slow_queries']['threshold'])
+							);
+						}
+						?>
                         </p>
                         
                         <?php if (!empty($performance_data['slow_queries']['queries'])): ?>
@@ -1598,24 +1820,27 @@ private function format_performance_data($performance_data) {
                     
                     <?php if ($performance_data['query_cache']['enabled']): ?>
                         <p>
-                            <?php 
-                            /* translators: %s is the query cache size formatted in KB/MB/GB */
-                            printf(
-                                __('Query cache is enabled with size: %s', 'db_ai_optimizer'),
-                                esc_html(size_format(intval($performance_data['query_cache']['size'])))
-                            );
-                            ?>
+
+							<?php 
+                                printf(
+                                    /* translators: %s is the query cache size formatted in KB/MB/GB */
+                                    esc_html__('Query cache is enabled with size: %s', 'db_ai_optimizer'),
+                                    esc_html(size_format(intval($performance_data['query_cache']['size'])))
+                                );
+                                ?>
                         </p>
                         
                         <?php if (isset($performance_data['query_cache']['hit_ratio'])): ?>
                             <p>
-                                <?php 
-                                /* translators: %s is the cache hit ratio percentage */
-                                printf(
-                                    __('Cache hit ratio: %s%%', 'db_ai_optimizer'),
-                                    esc_html($performance_data['query_cache']['hit_ratio'])
-                                ); 
-                                ?>
+                                
+								
+								<?php 
+                                    printf(
+                                        /* translators: %s is the cache hit ratio percentage */
+                                        esc_html__('Cache hit ratio: %s%%', 'db_ai_optimizer'),
+                                        esc_html($performance_data['query_cache']['hit_ratio'])
+                                    ); 
+                                    ?>
                                 
                                 <?php if ($performance_data['query_cache']['hit_ratio'] < 20): ?>
                                     <span class="ai-db-warning">
@@ -1755,24 +1980,42 @@ public function get_db_composition_data() {
         '#7E57C2', '#5E35B1', '#B39DDB', '#EDE7F6'
     ];
     
+    // Cache key for composition data
+    $cache_key = 'db_composition_data';
+    $cached_data = wp_cache_get($cache_key, $this->cache_group);
+    
+    if (false !== $cached_data) {
+        return $cached_data;
+    }
+    
     // Get sizes of key WordPress tables
-    $tables_info = [
-        'posts' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->posts}'"),
-        'postmeta' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->postmeta}'"),
-        'comments' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->comments}'"),
-        'commentmeta' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->commentmeta}'"),
-        'options' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->options}'"),
-        'users' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->users}'"),
-        'usermeta' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->usermeta}'"),
-        'terms' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->terms}'"),
-        'termmeta' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->termmeta}'"),
-        'term_taxonomy' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->term_taxonomy}'"),
-        'term_relationships' => $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$wpdb->term_relationships}'"),
+    $tables_info = [];
+    $table_names = [
+        'posts' => $wpdb->posts,
+        'postmeta' => $wpdb->postmeta,
+        'comments' => $wpdb->comments,
+        'commentmeta' => $wpdb->commentmeta,
+        'options' => $wpdb->options,
+        'users' => $wpdb->users,
+        'usermeta' => $wpdb->usermeta,
+        'terms' => $wpdb->terms,
+        'termmeta' => $wpdb->termmeta,
+        'term_taxonomy' => $wpdb->term_taxonomy,
+        'term_relationships' => $wpdb->term_relationships,
     ];
     
-    // Get total size of all WP tables
-    $total_wp_size = $wpdb->get_var("SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name LIKE '{$wpdb->prefix}%'");
-    
+    foreach ($table_names as $key => $table_name) {
+        $tables_info[$key] = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            "SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = %s AND table_name = %s",
+            DB_NAME, $table_name
+        ) );
+    }
+
+    $total_wp_size = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+        "SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = %s AND table_name LIKE %s",
+        DB_NAME, $wpdb->esc_like( $wpdb->prefix ) . '%'
+    ) );
+
     // Calculate size of "other" tables
     $measured_tables_size = array_sum($tables_info);
     $other_tables_size = $total_wp_size - $measured_tables_size;
@@ -1809,7 +2052,7 @@ public function get_db_composition_data() {
         $bg_colors[] = '#' . substr(md5(wp_rand()), 0, 6);
     }
     
-    return [
+    $result = [
         'labels' => $labels,
         'datasets' => [
             [
@@ -1819,6 +2062,11 @@ public function get_db_composition_data() {
             ]
         ]
     ];
+    
+    // Cache the result
+    wp_cache_set($cache_key, $result, $this->cache_group, $this->cache_expiry);
+    
+    return $result;
 }
 
 /**
@@ -1855,14 +2103,16 @@ public function ajax_get_composition_data() {
     global $wpdb;
     
     // Get all tables
-    $tables = $wpdb->get_results("
-        SELECT TABLE_NAME, 
-               DATA_LENGTH + INDEX_LENGTH as total_size
+    $tables = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        "SELECT TABLE_NAME, 
+            DATA_LENGTH + INDEX_LENGTH as total_size
         FROM information_schema.TABLES 
-        WHERE TABLE_SCHEMA = '" . DB_NAME . "'
-        AND TABLE_NAME LIKE '{$wpdb->prefix}%'
-        ORDER BY total_size DESC
-    ");
+        WHERE TABLE_SCHEMA = %s
+        AND TABLE_NAME LIKE %s
+        ORDER BY total_size DESC",
+        DB_NAME,
+        $wpdb->esc_like($wpdb->prefix) . '%'
+    ));
     
     // Prepare data for chart
     $labels = [];
