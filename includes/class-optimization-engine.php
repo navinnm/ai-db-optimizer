@@ -143,7 +143,7 @@ class Optimization_Engine {
                     'description' => esc_html(
                         sprintf(
                             /* translators: %1$s is the table name, %2$s is the overhead size in megabytes */
-                            __('Optimized table %1$s, removed %2$s MB overhead', 'db_ai_optimizer'), 
+                            __('Optimized table %1$s, removed %2$s MB overhead', 'ai-database-optimizer'), 
                             $table, 
                             number_format($analysis['overhead'] / (1024 * 1024), 2)
                         )
@@ -197,7 +197,7 @@ class Optimization_Engine {
                                     'description' => esc_html(
                                         sprintf(
                                             /* translators: %1$s is the table name, %2$s is the column name */
-                                            __('Added index on %1$s.%2$s for better performance', 'db_ai_optimizer'), 
+                                            __('Added index on %1$s.%2$s for better performance', 'ai-database-optimizer'), 
                                             $table, 
                                             $column
                                         )
@@ -255,7 +255,7 @@ class Optimization_Engine {
                     'description' => esc_html(
                         sprintf(
                             /* translators: %s is the number of expired transients removed */
-                            __('Removed %s expired transients', 'db_ai_optimizer'), 
+                            __('Removed %s expired transients', 'ai-database-optimizer'), 
                             number_format($deleted)
                         )
                     ),
@@ -321,7 +321,7 @@ class Optimization_Engine {
                     'description' => esc_html(
                         sprintf(
                             /* translators: %s is the number of old post revisions removed */
-                            __('Removed %s old post revisions', 'db_ai_optimizer'), 
+                            __('Removed %s old post revisions', 'ai-database-optimizer'), 
                             number_format($deleted_revisions)
                         )
                     ),
@@ -350,7 +350,7 @@ class Optimization_Engine {
                     'description' => esc_html(
                         sprintf(
                             /* translators: %s is the number of auto-drafts and trashed posts removed */
-                            __('Removed %s auto-drafts and trashed posts', 'db_ai_optimizer'), 
+                            __('Removed %s auto-drafts and trashed posts', 'ai-database-optimizer'), 
                             number_format($deleted)
                         )
                     ),
@@ -399,7 +399,7 @@ class Optimization_Engine {
         }
         
         if ($autoload_size > 1000000) { // More than 1MB of autoloaded options
-            $recommendations[] = esc_html__('Review and optimize autoloaded options which are consuming excessive memory on each page load.', 'db_ai_optimizer');
+            $recommendations[] = esc_html__('Review and optimize autoloaded options which are consuming excessive memory on each page load.', 'ai-database-optimizer');
         }
         
         return array_unique($recommendations); // Remove duplicates

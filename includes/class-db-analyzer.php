@@ -142,7 +142,7 @@ class DB_Analyzer {
                 'description' => esc_html(
                     sprintf(
                         /* translators: %s: Amount of overhead in megabytes */
-                        __('Table has %s MB of overhead. Optimization recommended.', 'db_ai_optimizer'), 
+                        __('Table has %s MB of overhead. Optimization recommended.', 'ai-database-optimizer'), 
                         number_format($overhead / (1024 * 1024), 2)
                     )
                 ),
@@ -183,7 +183,7 @@ class DB_Analyzer {
                         'description' => esc_html(
                             sprintf(
                                 /* translators: 1: Table name, 2: Column name */
-                                __('Add index to %1$s.%2$s for better query performance', 'db_ai_optimizer'), 
+                                __('Add index to %1$s.%2$s for better query performance', 'ai-database-optimizer'), 
                                 $table, 
                                 $column
                             )
@@ -202,7 +202,7 @@ class DB_Analyzer {
                     'description' => esc_html(
                         sprintf(
                             /* translators: %s: Table name */
-                            __('Add index to %s.meta_key for better query performance', 'db_ai_optimizer'), 
+                            __('Add index to %s.meta_key for better query performance', 'ai-database-optimizer'), 
                             $table
                         )
                     ),
@@ -252,7 +252,7 @@ class DB_Analyzer {
                             'description' => esc_html(
                                 sprintf(
                                     /* translators: 1: Table name, 2: Column name, 3: Compression ratio */
-                                    __('Column %1$s.%2$s contains highly compressible data (ratio: %3$s)', 'db_ai_optimizer'), 
+                                    __('Column %1$s.%2$s contains highly compressible data (ratio: %3$s)', 'ai-database-optimizer'), 
                                     $table, 
                                     $column->Field, 
                                     number_format($compression_ratio, 2)
@@ -375,16 +375,16 @@ class DB_Analyzer {
                         $recommendation = esc_html(
                             sprintf(
                                 /* translators: %s: Comma-separated list of column names */
-                                __('Consider adding an index on (%s) to speed up this query pattern', 'db_ai_optimizer'),
+                                __('Consider adding an index on (%s) to speed up this query pattern', 'ai-database-optimizer'),
                                 implode(', ', array_unique($index_columns))
                             )
                         );
                     }
                 }
             } elseif (strpos($pattern, 'JOIN') !== false) {
-                $recommendation = esc_html__('This query uses JOIN operations. Ensure all join columns are properly indexed.', 'db_ai_optimizer');
+                $recommendation = esc_html__('This query uses JOIN operations. Ensure all join columns are properly indexed.', 'ai-database-optimizer');
             } elseif (strpos($pattern, 'GROUP BY') !== false) {
-                $recommendation = esc_html__('This query uses GROUP BY. Consider adding an index on the grouped columns.', 'db_ai_optimizer');
+                $recommendation = esc_html__('This query uses GROUP BY. Consider adding an index on the grouped columns.', 'ai-database-optimizer');
             }
             
             $analysis_results['query_patterns']['slow_queries'][] = [
@@ -420,7 +420,7 @@ class DB_Analyzer {
                         'description' => esc_html(
                             sprintf(
                                 /* translators: 1: Table name, 2: Number of queries */
-                                __('Table %1$s has high query volume (%2$d queries). Consider reviewing access patterns.', 'db_ai_optimizer'),
+                                __('Table %1$s has high query volume (%2$d queries). Consider reviewing access patterns.', 'ai-database-optimizer'),
                                 $table,
                                 $stats['query_stats']['query_count']
                             )
@@ -438,7 +438,7 @@ class DB_Analyzer {
                         'description' => esc_html(
                             sprintf(
                                 /* translators: 1: Table name, 2: Query time in seconds */
-                                __('Table %1$s has high query time (%2$s seconds). Optimize indexes and queries.', 'db_ai_optimizer'),
+                                __('Table %1$s has high query time (%2$s seconds). Optimize indexes and queries.', 'ai-database-optimizer'),
                                 $table,
                                 number_format($stats['query_stats']['total_time'], 2)
                             )
@@ -457,7 +457,7 @@ class DB_Analyzer {
                     'description' => esc_html(
                         sprintf(
                             /* translators: %s: Table name */
-                            __('Table %s uses MyISAM engine. Consider converting to InnoDB for better performance and reliability.', 'db_ai_optimizer'),
+                            __('Table %s uses MyISAM engine. Consider converting to InnoDB for better performance and reliability.', 'ai-database-optimizer'),
                             $table
                         )
                     ),
@@ -484,7 +484,7 @@ class DB_Analyzer {
                     'description' => esc_html(
                         sprintf(
                             /* translators: %s: Buffer pool size in megabytes */
-                            __('InnoDB buffer pool size is only %sMB. For better performance, increase to at least 128MB if possible.', 'db_ai_optimizer'),
+                            __('InnoDB buffer pool size is only %sMB. For better performance, increase to at least 128MB if possible.', 'ai-database-optimizer'),
                             number_format($buffer_pool_mb, 0)
                         )
                     ),
@@ -505,7 +505,7 @@ class DB_Analyzer {
                     'description' => esc_html(
                         sprintf(
                             /* translators: %s: Connection usage percentage */
-                            __('Connection usage is high (%s%% of max_connections). Consider increasing max_connections or optimizing connection handling.', 'db_ai_optimizer'),
+                            __('Connection usage is high (%s%% of max_connections). Consider increasing max_connections or optimizing connection handling.', 'ai-database-optimizer'),
                             number_format($connection_ratio, 0)
                         )
                     ),
@@ -528,7 +528,7 @@ class DB_Analyzer {
                         'description' => esc_html(
                             sprintf(
                                 /* translators: %s: Percentage of temporary tables created on disk */
-                                __('%s%% of temporary tables are created on disk. Consider increasing tmp_table_size and max_heap_table_size.', 'db_ai_optimizer'),
+                                __('%s%% of temporary tables are created on disk. Consider increasing tmp_table_size and max_heap_table_size.', 'ai-database-optimizer'),
                                 number_format($disk_ratio, 0)
                             )
                         ),
@@ -570,7 +570,7 @@ class DB_Analyzer {
                     'description' => esc_html(
                         sprintf(
                             /* translators: %s: Cache hit ratio percentage */
-                            __('Query cache hit ratio is low (%s%%). Consider disabling the query cache or reviewing your query patterns.', 'db_ai_optimizer'),
+                            __('Query cache hit ratio is low (%s%%). Consider disabling the query cache or reviewing your query patterns.', 'ai-database-optimizer'),
                             number_format($hit_ratio, 1)
                         )
                     ),
@@ -583,7 +583,7 @@ class DB_Analyzer {
         if (isset($cache_info['usage']['query_cache_lowmem_prunes']) && intval($cache_info['usage']['query_cache_lowmem_prunes']) > 100) {
             $recommendations[] = [
                 'type' => 'query_cache',
-                'description' => esc_html__('Query cache is frequently pruning entries due to low memory. Consider increasing query_cache_size.', 'db_ai_optimizer'),
+                'description' => esc_html__('Query cache is frequently pruning entries due to low memory. Consider increasing query_cache_size.', 'ai-database-optimizer'),
                 'priority' => 'medium',
             ];
         }
@@ -612,7 +612,7 @@ class DB_Analyzer {
                 [
                     'query_pattern' => 'SELECT * FROM wp_posts WHERE post_type = %s',
                     'avg_execution_time' => 1.5,
-                    'recommendation' => esc_html__('Consider adding a composite index on (post_type, post_status)', 'db_ai_optimizer'),
+                    'recommendation' => esc_html__('Consider adding a composite index on (post_type, post_status)', 'ai-database-optimizer'),
                 ]
             ]
         ];
@@ -628,7 +628,7 @@ class DB_Analyzer {
         $analysis_results['table_correlations'] = [
             'wp_posts_wp_postmeta' => [
                 'strength' => 'high',
-                'description' => esc_html__('Strong correlation between wp_posts and wp_postmeta tables in queries', 'db_ai_optimizer'),
+                'description' => esc_html__('Strong correlation between wp_posts and wp_postmeta tables in queries', 'ai-database-optimizer'),
             ]
         ];
     }
@@ -642,13 +642,13 @@ class DB_Analyzer {
         $analysis_results['ai_recommendations'] = [
             [
                 'type' => 'index_optimization',
-                'description' => esc_html__('Create a covering index for frequently used query patterns', 'db_ai_optimizer'),
+                'description' => esc_html__('Create a covering index for frequently used query patterns', 'ai-database-optimizer'),
                 'priority' => 'high',
                 'expected_impact' => '25% faster queries on posts table',
             ],
             [
                 'type' => 'data_archiving',
-                'description' => esc_html__('Archive old post revisions to reduce table size', 'db_ai_optimizer'),
+                'description' => esc_html__('Archive old post revisions to reduce table size', 'ai-database-optimizer'),
                 'priority' => 'medium',
                 'expected_impact' => '15% reduction in database size',
             ],

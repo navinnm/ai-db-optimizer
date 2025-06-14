@@ -9,12 +9,12 @@
  *
  * @wordpress-plugin
  * Plugin Name: AI Database Optimizer
- * Plugin URI:  https://fulgid.in/db_ai_optimizer
+ * Plugin URI:  https://fulgid.in/ai-database-optimizer
  * Description: AI-based WordPress database optimization plugin that analyzes and optimizes your database for better performance.
  * Version:     1.0.0
  * Author:      Fulgid
  * Author URI:  https://fulgid.in
- * Text Domain: db_ai_optimizer
+ * Text Domain: ai-database-optimizer
  * Requires at least: 5.0
  * Tested up to: 6.8
  * Requires PHP: 7.4
@@ -34,7 +34,7 @@ define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
 // Include required files - use the actual filename that exists
-require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-db_ai_optimizer.php';
+require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-db-ai-optimizer.php';
 
 // Initialize the plugin
 function fulgid_ai_db_optimizer_init() {
@@ -49,12 +49,12 @@ function fulgid_ai_db_optimizer_activate() {
     // Check WordPress and PHP version requirements
     if (version_compare(get_bloginfo('version'), '5.0', '<')) {
         deactivate_plugins(plugin_basename(__FILE__));
-        wp_die(esc_html__('AI Database Optimizer requires WordPress 5.0 or higher.', 'db_ai_optimizer'));
+        wp_die(esc_html__('AI Database Optimizer requires WordPress 5.0 or higher.', 'ai-database-optimizer'));
     }
     
     if (version_compare(PHP_VERSION, '7.4', '<')) {
         deactivate_plugins(plugin_basename(__FILE__));
-        wp_die(esc_html__('AI Database Optimizer requires PHP 7.4 or higher.', 'db_ai_optimizer'));
+        wp_die(esc_html__('AI Database Optimizer requires PHP 7.4 or higher.', 'ai-database-optimizer'));
     }
     
     // Create necessary tables and initial settings
@@ -139,7 +139,7 @@ function fulgid_ai_db_optimizer_load_textdomain() {
     // Only load textdomain if languages directory exists
     if (is_dir(FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'languages/')) {
         load_plugin_textdomain(
-            'db_ai_optimizer',
+            'ai-database-optimizer',
             false,
             $languages_dir
         );
