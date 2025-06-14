@@ -4,9 +4,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once FULGID_AI_DB_OPTIMIZER_PLUGIN_DIR . 'includes/class-db-analyzer.php';
-require_once FULGID_AI_DB_OPTIMIZER_PLUGIN_DIR . 'includes/class-optimization-engine.php';
-require_once FULGID_AI_DB_OPTIMIZER_PLUGIN_DIR . 'admin/class-admin-ui.php';
+require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-db-analyzer.php';
+require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-optimization-engine.php';
+require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'admin/class-admin-ui.php';
 
 class AI_DB_Optimizer {
     /**
@@ -42,10 +42,69 @@ class AI_DB_Optimizer {
     }
     
     /**
-     * Register plugin settings
+     * Register plugin settings with proper sanitization
      */
     public function register_settings() {
-        register_setting('fulgid_ai_db_optimizer_settings', 'fulgid_ai_db_optimizer_settings');
+        register_setting(
+            'fulgid_ai_db_optimizer_settings',
+            'fulgid_ai_db_optimizer_settings',
+            [
+                'sanitize_callback' => [$this, 'sanitize_settings'],
+                'default' => [
+                    'schedule_frequency' => 'weekly',
+                    'notification_email' => get_option('admin_email'),
+                    'auto_optimize' => false,
+                    'optimization_level' => 'medium',
+                    'tables_to_exclude' => [],
+                    'last_optimization' => '',
+                ]
+            ]
+        );
+    }
+    
+    /**
+     * Sanitize plugin settings
+     */
+    public function sanitize_settings($input) {
+        $sanitized = [];
+        
+        // Sanitize schedule frequency
+        $allowed_frequencies = ['daily', 'weekly', 'monthly'];
+        $sanitized['schedule_frequency'] = isset($input['schedule_frequency']) && in_array($input['schedule_frequency'], $allowed_frequencies) 
+            ? sanitize_text_field($input['schedule_frequency']) 
+            : 'weekly';
+        
+        // Sanitize notification email
+        $sanitized['notification_email'] = isset($input['notification_email']) 
+            ? sanitize_email($input['notification_email']) 
+            : get_option('admin_email');
+        
+        // Sanitize auto optimize (boolean)
+        $sanitized['auto_optimize'] = isset($input['auto_optimize']) ? (bool) $input['auto_optimize'] : false;
+        
+        // Sanitize optimization level
+        $allowed_levels = ['low', 'medium', 'high'];
+        $sanitized['optimization_level'] = isset($input['optimization_level']) && in_array($input['optimization_level'], $allowed_levels)
+            ? sanitize_text_field($input['optimization_level'])
+            : 'medium';
+        
+        // Sanitize tables to exclude (array of table names)
+        $sanitized['tables_to_exclude'] = [];
+        if (isset($input['tables_to_exclude']) && is_array($input['tables_to_exclude'])) {
+            foreach ($input['tables_to_exclude'] as $table) {
+                $clean_table = sanitize_text_field($table);
+                if (!empty($clean_table)) {
+                    $sanitized['tables_to_exclude'][] = $clean_table;
+                }
+            }
+        }
+        
+        // Sanitize last optimization timestamp
+        $sanitized['last_optimization'] = isset($input['last_optimization']) 
+            ? sanitize_text_field($input['last_optimization']) 
+            : '';
+        
+        return $sanitized;
     }
     
     /**
@@ -104,34 +163,37 @@ class AI_DB_Optimizer {
     /**
      * Send notification email about optimization results
      */
-    
     private function send_notification_email($result) {
         $settings = get_option('fulgid_ai_db_optimizer_settings');
-        $to = $settings['notification_email'];
+        $to = sanitize_email($settings['notification_email']);
+        
+        if (empty($to) || !is_email($to)) {
+            return false;
+        }
         
         /* translators: %s is the site name */
-        $subject = sprintf(__('Database Optimization Report - %s', 'ai-db-optimizer'), get_bloginfo('name'));
+        $subject = sprintf(__('Database Optimization Report - %s', 'ai-database-optimizer'), get_bloginfo('name'));
         
         /* translators: %s is the current date and time */
-        $message = sprintf(__('Database optimization completed on %s.', 'ai-db-optimizer'), current_time('mysql')) . "\n\n";
+        $message = sprintf(__('Database optimization completed on %s.', 'ai-database-optimizer'), current_time('mysql')) . "\n\n";
         
         /* translators: %s is the optimization level (low/medium/high) */
-        $message .= sprintf(__('Optimization Level: %s', 'ai-db-optimizer'), $settings['optimization_level']) . "\n";
+        $message .= sprintf(__('Optimization Level: %s', 'ai-database-optimizer'), $settings['optimization_level']) . "\n";
         
         /* translators: %d is the number of database tables that were affected */
-        $message .= sprintf(__('Tables Affected: %d', 'ai-db-optimizer'), count($result['tables_affected'])) . "\n";
+        $message .= sprintf(__('Tables Affected: %d', 'ai-database-optimizer'), count($result['tables_affected'])) . "\n";
         
         /* translators: %.2f is the performance improvement percentage */
-        $message .= sprintf(__('Performance Impact: %.2f%%', 'ai-db-optimizer'), $result['performance_impact']) . "\n\n";
+        $message .= sprintf(__('Performance Impact: %.2f%%', 'ai-database-optimizer'), $result['performance_impact']) . "\n\n";
         
         if (!empty($result['recommendations'])) {
-            $message .= __('Recommendations:', 'ai-db-optimizer') . "\n";
+            $message .= __('Recommendations:', 'ai-database-optimizer') . "\n";
             foreach ($result['recommendations'] as $recommendation) {
-                $message .= "- " . $recommendation . "\n";
+                $message .= "- " . sanitize_text_field($recommendation) . "\n";
             }
         }
         
-        wp_mail($to, $subject, $message);
+        return wp_mail($to, $subject, $message);
     }
 
     /**

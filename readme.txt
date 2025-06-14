@@ -32,7 +32,7 @@ Better user experience
 
 Installation
 
-Upload the ai-db-optimizer folder to the /wp-content/plugins/ directory
+Upload the ai-database-optimizer folder to the /wp-content/plugins/ directory
 Activate the plugin through the 'Plugins' menu in WordPress
 Go to 'Tools > AI DB Optimizer' to configure settings and run your first analysis
 

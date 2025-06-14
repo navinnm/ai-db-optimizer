@@ -100,7 +100,14 @@ class Optimization_Engine {
             $wpdb->query("OPTIMIZE TABLE $table");
             $results['actions'][] = [
                 'type' => 'optimize_table',
-                'description' => sprintf(__('Optimized table %s, removed %.2f MB overhead', 'ai-db-optimizer'), $table, $analysis['overhead'] / (1024 * 1024)),
+                'description' => esc_html(
+                    /* translators: %1$s is the table name, %2$s is the overhead size in megabytes */
+                    sprintf(
+                        __('Optimized table %1$s, removed %2$s MB overhead', 'ai-database-optimizer'), 
+                        $table, 
+                        number_format($analysis['overhead'] / (1024 * 1024), 2)
+                    )
+                ),
             ];
             $results['performance_impact'] += 5; // Estimate 5% improvement for removing overhead
         }
@@ -131,7 +138,14 @@ class Optimization_Engine {
                             if ($result !== false) {
                                 $results['actions'][] = [
                                     'type' => 'add_index',
-                                    'description' => sprintf(__('Added index on %s.%s for better performance', 'ai-db-optimizer'), $table, $column),
+                                    'description' => esc_html(
+                                        /* translators: %1$s is the table name, %2$s is the column name */
+                                        sprintf(
+                                            __('Added index on %1$s.%2$s for better performance', 'ai-database-optimizer'), 
+                                            $table, 
+                                            $column
+                                        )
+                                    ),
                                 ];
                                 $results['performance_impact'] += 10; // Estimate 10% improvement for each new index
                             }
@@ -167,7 +181,13 @@ class Optimization_Engine {
                 
                 $results['optimization_actions'][] = [
                     'type' => 'clean_transients',
-                    'description' => sprintf(__('Removed %d expired transients', 'ai-db-optimizer'), $deleted),
+                    'description' => esc_html(
+                        /* translators: %s is the number of expired transients removed */
+                        sprintf(
+                            __('Removed %s expired transients', 'ai-database-optimizer'), 
+                            number_format($deleted)
+                        )
+                    ),
                 ];
                 $results['performance_impact'] += 3; // Estimate 3% improvement
             }
@@ -214,7 +234,13 @@ class Optimization_Engine {
             if ($deleted_revisions) {
                 $results['optimization_actions'][] = [
                     'type' => 'clean_revisions',
-                    'description' => sprintf(__('Removed %d old post revisions', 'ai-db-optimizer'), $deleted_revisions),
+                    'description' => esc_html(
+                        /* translators: %s is the number of old post revisions removed */
+                        sprintf(
+                            __('Removed %s old post revisions', 'ai-database-optimizer'), 
+                            number_format($deleted_revisions)
+                        )
+                    ),
                 ];
                 $results['performance_impact'] += 5; // Estimate 5% improvement
             }
@@ -231,7 +257,13 @@ class Optimization_Engine {
             if ($deleted) {
                 $results['optimization_actions'][] = [
                     'type' => 'clean_auto_drafts',
-                    'description' => sprintf(__('Removed %d auto-drafts and trashed posts', 'ai-db-optimizer'), $deleted),
+                    'description' => esc_html(
+                        /* translators: %s is the number of auto-drafts and trashed posts removed */
+                        sprintf(
+                            __('Removed %s auto-drafts and trashed posts', 'ai-database-optimizer'), 
+                            number_format($deleted)
+                        )
+                    ),
                 ];
                 $results['performance_impact'] += 2; // Estimate 2% improvement
             }
@@ -269,7 +301,7 @@ class Optimization_Engine {
         );
         
         if ($autoload_size > 1000000) { // More than 1MB of autoloaded options
-            $recommendations[] = __('Review and optimize autoloaded options which are consuming excessive memory on each page load.', 'ai-db-optimizer');
+            $recommendations[] = esc_html__('Review and optimize autoloaded options which are consuming excessive memory on each page load.', 'ai-database-optimizer');
         }
         
         return $recommendations;
@@ -278,37 +310,55 @@ class Optimization_Engine {
     /**
      * Store optimization history in the database
      */
-/**
- * Store optimization history in the database
- */
-private function store_optimization_history($results, $level) {
-    global $wpdb;
+    private function store_optimization_history($results, $level) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'ai_db_optimization_history';
+        
+        // Collect current performance data
+        $performance_data = $this->collect_current_performance_data();
+        
+        $wpdb->insert(
+            $table_name,
+            [
+                'optimization_time' => current_time('mysql'),
+                'optimization_type' => $level,
+                'tables_affected' => json_encode($results['tables_affected']),
+                'performance_impact' => $results['performance_impact'],
+                'recommendations' => json_encode($results['recommendations']),
+            ],
+            [
+                '%s',
+                '%s',
+                '%s',
+                '%f',
+                '%s',
+            ]
+        );
+    }
     
-    $table_name = $wpdb->prefix . 'ai_db_optimization_history';
-    
-    // Collect current performance data
-    $performance_data = collect_current_performance_data();
-    
-    $wpdb->insert(
-        $table_name,
-        [
-            'optimization_time' => current_time('mysql'),
-            'optimization_type' => $level,
-            'tables_affected' => json_encode($results['tables_affected']),
-            'performance_impact' => $results['performance_impact'],
-            'recommendations' => json_encode($results['recommendations']),
-            'query_time' => $performance_data['query_time'],
-            'db_size' => $performance_data['db_size']
-        ],
-        [
-            '%s',
-            '%s',
-            '%s',
-            '%f',
-            '%s',
-            '%f',
-            '%d'
-        ]
-    );
-}
+    /**
+     * Collect current performance data for historical tracking
+     */
+    private function collect_current_performance_data() {
+        global $wpdb;
+        
+        // Get basic database size
+        $db_size = $wpdb->get_var(
+            "SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 1) AS 'DB Size in MB' 
+            FROM information_schema.tables 
+            WHERE table_schema='" . DB_NAME . "'"
+        );
+        
+        // Get table count
+        $table_count = $wpdb->get_var(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '" . DB_NAME . "'"
+        );
+        
+        return [
+            'db_size' => floatval($db_size),
+            'table_count' => intval($table_count),
+            'timestamp' => current_time('mysql'),
+        ];
+    }
 }

@@ -1,7 +1,7 @@
 /* Main layout */
 
 /* Main layout */
-.ai-db-optimizer-wrap {
+.ai-database-optimizer-wrap {
     margin: 20px 0;
     color: #1d2327;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
@@ -95,28 +95,28 @@
     color: #8a6d3b;
 }
 
-.ai-db-optimizer-main {
+.ai-database-optimizer-main {
     display: flex;
     flex-wrap: wrap;
     margin: 0 -15px;
 }
 
-.ai-db-optimizer-dashboard {
+.ai-database-optimizer-dashboard {
     width: 100%;
     flex:2;
 }
 
-.ai-db-optimizer-dashboard .flex {
+.ai-database-optimizer-dashboard .flex {
     width: 100%;
 }
 
-.ai-db-optimizer-dashboard .ai-db-optimizer-card {
+.ai-database-optimizer-dashboard .ai-database-optimizer-card {
     width: 100%;
     box-sizing: border-box;
 }
 
 /* For the card layout in flexbox */
-.ai-db-optimizer-dashboard .flex {
+.ai-database-optimizer-dashboard .flex {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
@@ -124,14 +124,14 @@
     margin-bottom: 20px;
 }
 
-.ai-db-optimizer-dashboard .flex > div {
+.ai-database-optimizer-dashboard .flex > div {
     flex: 1 1 100%;
     min-width: 300px;
 }
 
 /* Responsive adjustments */
 @media (min-width: 992px) {
-    .ai-db-optimizer-dashboard .flex > div {
+    .ai-database-optimizer-dashboard .flex > div {
         flex: 1 1 calc(50% - 20px);
     }
 }
@@ -223,19 +223,19 @@
     color: #555;
 }
 
-.ai-db-optimizer-sidebar {
+.ai-database-optimizer-sidebar {
     flex: 1;
     min-width: 300px;
     padding: 0 15px;
 }
 
-.ai-db-optimizer-header {
+.ai-database-optimizer-header {
     display: flex;
     align-items: center;
     margin-bottom: 25px;
 }
 
-.ai-db-optimizer-header h1 {
+.ai-database-optimizer-header h1 {
     margin: 0;
     padding: 0;
     font-size: 24px;
@@ -247,7 +247,7 @@ button#ai-db-analyze {
 }
 
 
-.ai-db-optimizer-logo {
+.ai-database-optimizer-logo {
     width: 40px;
     height: 40px;
     margin-right: 15px;
@@ -258,13 +258,13 @@ button#ai-db-analyze {
     justify-content: center;
 }
 
-.ai-db-optimizer-logo svg {
+.ai-database-optimizer-logo svg {
     width: 24px;
     height: 24px;
 }
 
 /* Cards */
-.ai-db-optimizer-card {
+.ai-database-optimizer-card {
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -273,11 +273,11 @@ button#ai-db-analyze {
     transition: box-shadow 0.3s ease;
 }
 
-.ai-db-optimizer-card:hover {
+.ai-database-optimizer-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
-.ai-db-optimizer-card h2 {
+.ai-database-optimizer-card h2 {
     margin-top: 0;
     margin-bottom: 20px;
     padding-bottom: 15px;
@@ -423,13 +423,13 @@ button#ai-db-analyze {
 }
 
 /* Actions */
-.ai-db-optimizer-actions {
+.ai-database-optimizer-actions {
     margin-top: 25px;
     display: flex;
     gap: 12px;
 }
 
-.ai-db-optimizer-actions button {
+.ai-database-optimizer-actions button {
     flex: 1;
     min-height: 40px;
     border-radius: 4px;
@@ -442,25 +442,25 @@ button#ai-db-analyze {
     justify-content: center;
 }
 
-.ai-db-optimizer-actions button svg {
+.ai-database-optimizer-actions button svg {
     margin-right: 8px;
     width: 18px;
     height: 18px;
 }
 
-.ai-db-optimizer-actions button.button-primary, #ai-db-collect-performance {
+.ai-database-optimizer-actions button.button-primary, #ai-db-collect-performance {
     background: #4527a0;
     border-color: #3b1f8a;
     color: #fff;
 }
 
-.ai-db-optimizer-actions button.button-primary:hover, 
-.ai-db-optimizer-actions button.button-primary:focus {
+.ai-database-optimizer-actions button.button-primary:hover, 
+.ai-database-optimizer-actions button.button-primary:focus {
     background: #3b1f8a;
     border-color: #301a70;
 }
 
-.ai-db-optimizer-actions button:disabled {
+.ai-database-optimizer-actions button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
@@ -645,14 +645,14 @@ button#ai-db-analyze {
 }
 
 /* Tables */
-.ai-db-optimizer-wrap table {
+.ai-database-optimizer-wrap table {
     width: 100%;
     border-collapse: collapse;
     border-spacing: 0;
     font-size: 14px;
 }
 
-.ai-db-optimizer-wrap th {
+.ai-database-optimizer-wrap th {
     text-align: left;
     padding: 12px;
     background-color: #ffffff;
@@ -660,23 +660,23 @@ button#ai-db-analyze {
     font-weight: 600;
 }
 
-.ai-db-optimizer-wrap td {
+.ai-database-optimizer-wrap td {
     padding: 12px;
     border-bottom: 1px solid #f0f0f1;
     vertical-align: middle;
     background-color: #fff;
 }
 
-.ai-db-optimizer-wrap tr:last-child td {
+.ai-database-optimizer-wrap tr:last-child td {
     border-bottom: none;
     background: #fff;
 }
 
-.ai-db-optimizer-wrap tr:hover td {
+.ai-database-optimizer-wrap tr:hover td {
     background-color: #f8f9fa;
 }
 
-.ai-db-optimizer-history .widefat {
+.ai-database-optimizer-history .widefat {
     border-radius: 6px;
     overflow: hidden;
     box-shadow: none;
@@ -792,16 +792,16 @@ button#ai-db-analyze {
 }
 
 @media screen and (max-width: 782px) {
-    .ai-db-optimizer-wrap th {
+    .ai-database-optimizer-wrap th {
         display: none;
     }
     
-    .ai-db-optimizer-wrap td {
+    .ai-database-optimizer-wrap td {
         display: block;
         padding: 10px;
     }
     
-    .ai-db-optimizer-wrap td:before {
+    .ai-database-optimizer-wrap td:before {
         content: attr(data-title);
         font-weight: 600;
         display: block;
@@ -819,11 +819,11 @@ button#ai-db-analyze {
 #wpbody-content{
     overflow: hidden;
 }
-.ai-db-optimizer-wrap {
+.ai-database-optimizer-wrap {
     margin: 20px 0;
 }
 
-.ai-db-optimizer-main {
+.ai-database-optimizer-main {
     display: flex;
     flex-wrap: wrap;
     margin: 0 -10px;
@@ -831,14 +831,14 @@ button#ai-db-analyze {
 
 
 
-.ai-db-optimizer-sidebar {
+.ai-database-optimizer-sidebar {
     flex: 1;
     min-width: 300px;
     padding: 0 10px;
 }
 
 /* Cards */
-.ai-db-optimizer-card {
+.ai-database-optimizer-card {
     background: #fff;
     border: 1px solid #ccd0d4;
     box-shadow: 0 1px 1px rgba(0,0,0,0.04);
@@ -846,7 +846,7 @@ button#ai-db-analyze {
     padding: 20px;
 }
 
-.ai-db-optimizer-card h2 {
+.ai-database-optimizer-card h2 {
     margin-top: 0;
     padding-bottom: 10px;
     border-bottom: 1px solid #eee;
@@ -874,7 +874,7 @@ button#ai-db-analyze {
 }
 
 /* Actions */
-.ai-db-optimizer-actions {
+.ai-database-optimizer-actions {
     margin-top: 20px;
     display: flex;
     gap: 10px;
@@ -953,16 +953,16 @@ button#ai-db-analyze {
 }
 
 /* Tables */
-.ai-db-optimizer-wrap table {
+.ai-database-optimizer-wrap table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.ai-db-optimizer-wrap th {
+.ai-database-optimizer-wrap th {
     text-align: left;
 }
 
-.ai-db-optimizer-history table {
+.ai-database-optimizer-history table {
     font-size: 13px;
 }
 
