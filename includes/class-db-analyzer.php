@@ -23,16 +23,20 @@ class DB_Analyzer {
             $analysis_results['performance_data'] = $performance_data['data'];
         }
         
-        
         foreach ($tables as $table) {
-            // Get table status
-            $status = $wpdb->get_row("SHOW TABLE STATUS LIKE '$table'");
+            // Validate table name to prevent SQL injection
+            if (!$this->is_valid_table_name($table)) {
+                continue;
+            }
             
-            // Get indexes
-            $indexes = $wpdb->get_results("SHOW INDEX FROM $table");
+            // Get table status with proper escaping
+            $status = $wpdb->get_row($wpdb->prepare("SHOW TABLE STATUS LIKE %s", $table));
+            
+            // Get indexes - table name is validated above
+            $indexes = $wpdb->get_results("SHOW INDEX FROM `" . esc_sql($table) . "`");
             
             // Get column information
-            $columns = $wpdb->get_results("SHOW FULL COLUMNS FROM $table");
+            $columns = $wpdb->get_results("SHOW FULL COLUMNS FROM `" . esc_sql($table) . "`");
             
             // Analyze table structure and data
             $table_analysis = $this->analyze_table($table, $status, $indexes, $columns);
@@ -47,6 +51,14 @@ class DB_Analyzer {
     }
     
     /**
+     * Validate table name to prevent SQL injection
+     */
+    private function is_valid_table_name($table) {
+        // Table names should only contain alphanumeric characters and underscores
+        return preg_match('/^[a-zA-Z0-9_]+$/', $table) === 1;
+    }
+    
+    /**
      * Get all tables in the WordPress database
      */
     private function get_database_tables() {
@@ -55,7 +67,10 @@ class DB_Analyzer {
         $settings = get_option('fulgid_ai_db_optimizer_settings');
         $excluded_tables = isset($settings['tables_to_exclude']) ? $settings['tables_to_exclude'] : [];
         
-        $tables = $wpdb->get_col("SHOW TABLES LIKE '{$wpdb->prefix}%'");
+        $tables = $wpdb->get_col($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $wpdb->esc_like($wpdb->prefix) . '%'
+        ));
         
         // Remove excluded tables
         if (!empty($excluded_tables)) {
@@ -70,6 +85,12 @@ class DB_Analyzer {
      */
     private function analyze_table($table, $status, $indexes, $columns) {
         global $wpdb;
+        
+        if (!$status) {
+            return [
+                'error' => 'Could not retrieve table status'
+            ];
+        }
         
         $row_count = $status->Rows;
         $data_size = $status->Data_length;
@@ -92,9 +113,9 @@ class DB_Analyzer {
             $analysis['suggestions'][] = [
                 'type' => 'optimize_table',
                 'description' => esc_html(
-                    /* translators: %s is the amount of overhead in megabytes */
+                    /* translators: %s: Amount of overhead in megabytes */
                     sprintf(
-                        __('Table has %s MB of overhead. Optimization recommended.', 'ai-database-optimizer'), 
+                        __('Table has %s MB of overhead. Optimization recommended.', 'db_ai_optimizer'), 
                         number_format($overhead / (1024 * 1024), 2)
                     )
                 ),
@@ -133,9 +154,9 @@ class DB_Analyzer {
                     $analysis['suggestions'][] = [
                         'type' => 'add_index',
                         'description' => esc_html(
-                            /* translators: %1$s is the table name, %2$s is the column name */
+                            /* translators: 1: Table name, 2: Column name */
                             sprintf(
-                                __('Add index to %1$s.%2$s for better query performance', 'ai-database-optimizer'), 
+                                __('Add index to %1$s.%2$s for better query performance', 'db_ai_optimizer'), 
                                 $table, 
                                 $column
                             )
@@ -152,9 +173,9 @@ class DB_Analyzer {
                 $analysis['suggestions'][] = [
                     'type' => 'add_index',
                     'description' => esc_html(
-                        /* translators: %s is the table name */
+                        /* translators: %s: Table name */
                         sprintf(
-                            __('Add index to %s.meta_key for better query performance', 'ai-database-optimizer'), 
+                            __('Add index to %s.meta_key for better query performance', 'db_ai_optimizer'), 
                             $table
                         )
                     ),
@@ -174,8 +195,15 @@ class DB_Analyzer {
         foreach ($columns as $column) {
             // Check for TEXT/LONGTEXT columns with potentially compressible data
             if (strpos($column->Type, 'text') !== false || strpos($column->Type, 'longtext') !== false) {
+                // Validate table and column names before using in query
+                if (!$this->is_valid_table_name($table) || !preg_match('/^[a-zA-Z0-9_]+$/', $column->Field)) {
+                    continue;
+                }
+                
                 // Sample the data to see if it's compressible
-                $sample = $wpdb->get_var("SELECT $column->Field FROM $table WHERE $column->Field IS NOT NULL AND LENGTH($column->Field) > 1000 LIMIT 1");
+                $sample = $wpdb->get_var($wpdb->prepare(
+                    "SELECT `{$column->Field}` FROM `" . esc_sql($table) . "` WHERE `{$column->Field}` IS NOT NULL AND LENGTH(`{$column->Field}`) > 1000 LIMIT 1"
+                ));
                 
                 if ($sample && strlen($sample) > 1000) {
                     $compressed_size = strlen(gzcompress($sample));
@@ -187,9 +215,9 @@ class DB_Analyzer {
                         $analysis['suggestions'][] = [
                             'type' => 'compress_column',
                             'description' => esc_html(
-                                /* translators: %1$s is the table name, %2$s is the column name, %3$s is the compression ratio */
+                                /* translators: 1: Table name, 2: Column name, 3: Compression ratio */
                                 sprintf(
-                                    __('Column %1$s.%2$s contains highly compressible data (ratio: %3$s)', 'ai-database-optimizer'), 
+                                    __('Column %1$s.%2$s contains highly compressible data (ratio: %3$s)', 'db_ai_optimizer'), 
                                     $table, 
                                     $column->Field, 
                                     number_format($compression_ratio, 2)
@@ -217,9 +245,6 @@ class DB_Analyzer {
         // Look for correlation between tables
         $this->identify_table_correlations($analysis_results);
         
-        // Generate overall recommendations
-        $this->generate_ai_recommendations($analysis_results);
-
         // If we have performance data, use it to enhance the analysis
         if ($has_performance_data && isset($analysis_results['performance_data'])) {
             $performance_data = $analysis_results['performance_data'];
@@ -248,7 +273,6 @@ class DB_Analyzer {
         // Generate overall recommendations
         $this->generate_ai_recommendations($analysis_results);
     }
-
 
     /**
      * Analyze slow query patterns from performance data
@@ -314,18 +338,18 @@ class DB_Analyzer {
                     
                     if (!empty($index_columns)) {
                         $recommendation = esc_html(
-                            /* translators: %s is a comma-separated list of column names */
+                            /* translators: %s: Comma-separated list of column names */
                             sprintf(
-                                __('Consider adding an index on (%s) to speed up this query pattern', 'ai-database-optimizer'),
+                                __('Consider adding an index on (%s) to speed up this query pattern', 'db_ai_optimizer'),
                                 implode(', ', array_unique($index_columns))
                             )
                         );
                     }
                 }
             } elseif (strpos($pattern, 'JOIN') !== false) {
-                $recommendation = esc_html__('This query uses JOIN operations. Ensure all join columns are properly indexed.', 'ai-database-optimizer');
+                $recommendation = esc_html__('This query uses JOIN operations. Ensure all join columns are properly indexed.', 'db_ai_optimizer');
             } elseif (strpos($pattern, 'GROUP BY') !== false) {
-                $recommendation = esc_html__('This query uses GROUP BY. Consider adding an index on the grouped columns.', 'ai-database-optimizer');
+                $recommendation = esc_html__('This query uses GROUP BY. Consider adding an index on the grouped columns.', 'db_ai_optimizer');
             }
             
             $analysis_results['query_patterns']['slow_queries'][] = [
@@ -359,9 +383,9 @@ class DB_Analyzer {
                     $analysis_results[$table]['suggestions'][] = [
                         'type' => 'performance_review',
                         'description' => esc_html(
-                            /* translators: %1$s is the table name, %2$d is the number of queries */
+                            /* translators: 1: Table name, 2: Number of queries */
                             sprintf(
-                                __('Table %1$s has high query volume (%2$d queries). Consider reviewing access patterns.', 'ai-database-optimizer'),
+                                __('Table %1$s has high query volume (%2$d queries). Consider reviewing access patterns.', 'db_ai_optimizer'),
                                 $table,
                                 $stats['query_stats']['query_count']
                             )
@@ -377,9 +401,9 @@ class DB_Analyzer {
                     $analysis_results[$table]['suggestions'][] = [
                         'type' => 'performance_review',
                         'description' => esc_html(
-                            /* translators: %1$s is the table name, %2$s is the query time in seconds */
+                            /* translators: 1: Table name, 2: Query time in seconds */
                             sprintf(
-                                __('Table %1$s has high query time (%2$s seconds). Optimize indexes and queries.', 'ai-database-optimizer'),
+                                __('Table %1$s has high query time (%2$s seconds). Optimize indexes and queries.', 'db_ai_optimizer'),
                                 $table,
                                 number_format($stats['query_stats']['total_time'], 2)
                             )
@@ -390,15 +414,15 @@ class DB_Analyzer {
             }
             
             // Check for MyISAM tables that could be converted to InnoDB
-            if ($stats['engine'] == 'MyISAM') {
+            if (isset($stats['engine']) && $stats['engine'] == 'MyISAM') {
                 $analysis_results[$table]['issues'][] = 'myisam_engine';
                 
                 $analysis_results[$table]['suggestions'][] = [
                     'type' => 'engine_conversion',
                     'description' => esc_html(
-                        /* translators: %s is the table name */
+                        /* translators: %s: Table name */
                         sprintf(
-                            __('Table %s uses MyISAM engine. Consider converting to InnoDB for better performance and reliability.', 'ai-database-optimizer'),
+                            __('Table %s uses MyISAM engine. Consider converting to InnoDB for better performance and reliability.', 'db_ai_optimizer'),
                             $table
                         )
                     ),
@@ -423,9 +447,9 @@ class DB_Analyzer {
                 $recommendations[] = [
                     'type' => 'server_config',
                     'description' => esc_html(
-                        /* translators: %s is the buffer pool size in megabytes */
+                        /* translators: %s: Buffer pool size in megabytes */
                         sprintf(
-                            __('InnoDB buffer pool size is only %sMB. For better performance, increase to at least 128MB if possible.', 'ai-database-optimizer'),
+                            __('InnoDB buffer pool size is only %sMB. For better performance, increase to at least 128MB if possible.', 'db_ai_optimizer'),
                             number_format($buffer_pool_mb, 0)
                         )
                     ),
@@ -444,9 +468,9 @@ class DB_Analyzer {
                 $recommendations[] = [
                     'type' => 'server_config',
                     'description' => esc_html(
-                        /* translators: %s is the connection usage percentage */
+                        /* translators: %s: Connection usage percentage */
                         sprintf(
-                            __('Connection usage is high (%s%% of max_connections). Consider increasing max_connections or optimizing connection handling.', 'ai-database-optimizer'),
+                            __('Connection usage is high (%s%% of max_connections). Consider increasing max_connections or optimizing connection handling.', 'db_ai_optimizer'),
                             number_format($connection_ratio, 0)
                         )
                     ),
@@ -467,9 +491,9 @@ class DB_Analyzer {
                     $recommendations[] = [
                         'type' => 'server_config',
                         'description' => esc_html(
-                            /* translators: %s is the percentage of temporary tables created on disk */
+                            /* translators: %s: Percentage of temporary tables created on disk */
                             sprintf(
-                                __('%s%% of temporary tables are created on disk. Consider increasing tmp_table_size and max_heap_table_size.', 'ai-database-optimizer'),
+                                __('%s%% of temporary tables are created on disk. Consider increasing tmp_table_size and max_heap_table_size.', 'db_ai_optimizer'),
                                 number_format($disk_ratio, 0)
                             )
                         ),
@@ -509,9 +533,9 @@ class DB_Analyzer {
                 $recommendations[] = [
                     'type' => 'query_cache',
                     'description' => esc_html(
-                        /* translators: %s is the cache hit ratio percentage */
+                        /* translators: %s: Cache hit ratio percentage */
                         sprintf(
-                            __('Query cache hit ratio is low (%s%%). Consider disabling the query cache or reviewing your query patterns.', 'ai-database-optimizer'),
+                            __('Query cache hit ratio is low (%s%%). Consider disabling the query cache or reviewing your query patterns.', 'db_ai_optimizer'),
                             number_format($hit_ratio, 1)
                         )
                     ),
@@ -524,7 +548,7 @@ class DB_Analyzer {
         if (isset($cache_info['usage']['query_cache_lowmem_prunes']) && intval($cache_info['usage']['query_cache_lowmem_prunes']) > 100) {
             $recommendations[] = [
                 'type' => 'query_cache',
-                'description' => esc_html__('Query cache is frequently pruning entries due to low memory. Consider increasing query_cache_size.', 'ai-database-optimizer'),
+                'description' => esc_html__('Query cache is frequently pruning entries due to low memory. Consider increasing query_cache_size.', 'db_ai_optimizer'),
                 'priority' => 'medium',
             ];
         }
@@ -540,7 +564,6 @@ class DB_Analyzer {
             }
         }
     }
-
     
     /**
      * Analyze query patterns from debug log
@@ -554,7 +577,7 @@ class DB_Analyzer {
                 [
                     'query_pattern' => 'SELECT * FROM wp_posts WHERE post_type = %s',
                     'avg_execution_time' => 1.5,
-                    'recommendation' => esc_html__('Consider adding a composite index on (post_type, post_status)', 'ai-database-optimizer'),
+                    'recommendation' => esc_html__('Consider adding a composite index on (post_type, post_status)', 'db_ai_optimizer'),
                 ]
             ]
         ];
@@ -570,7 +593,7 @@ class DB_Analyzer {
         $analysis_results['table_correlations'] = [
             'wp_posts_wp_postmeta' => [
                 'strength' => 'high',
-                'description' => esc_html__('Strong correlation between wp_posts and wp_postmeta tables in queries', 'ai-database-optimizer'),
+                'description' => esc_html__('Strong correlation between wp_posts and wp_postmeta tables in queries', 'db_ai_optimizer'),
             ]
         ];
     }
@@ -584,13 +607,13 @@ class DB_Analyzer {
         $analysis_results['ai_recommendations'] = [
             [
                 'type' => 'index_optimization',
-                'description' => esc_html__('Create a covering index for frequently used query patterns', 'ai-database-optimizer'),
+                'description' => esc_html__('Create a covering index for frequently used query patterns', 'db_ai_optimizer'),
                 'priority' => 'high',
                 'expected_impact' => '25% faster queries on posts table',
             ],
             [
                 'type' => 'data_archiving',
-                'description' => esc_html__('Archive old post revisions to reduce table size', 'ai-database-optimizer'),
+                'description' => esc_html__('Archive old post revisions to reduce table size', 'db_ai_optimizer'),
                 'priority' => 'medium',
                 'expected_impact' => '15% reduction in database size',
             ],

@@ -3,7 +3,7 @@
     
     $(document).ready(function() {
         // Initialize charts if on the right page
-        if ($('.ai-database-optimizer-wrap').length) {
+        if ($('.db_ai_optimizer-wrap').length) {
             initializeCharts();
             
             // Initialize tabs at page load
@@ -11,7 +11,7 @@
         }
 
         // Add a new button for performance data collection to the HTML
-        $('.ai-database-optimizer-actions').append(
+        $('.db_ai_optimizer-actions').append(
             '<button id="ai-db-collect-performance" class="button">' +
             'Collect Performance Data' +
             '</button>'
@@ -452,7 +452,7 @@ function showTableDetails(tableName, tableData) {
     console.log(`Showing details for table: ${tableName}`, tableData);
     
     // Example: dispatch a custom event that other components can listen for
-    const event = new CustomEvent('ai-database-optimizer-table-selected', {
+    const event = new CustomEvent('db_ai_optimizer-table-selected', {
         detail: {
             tableName: tableName,
             tableData: tableData

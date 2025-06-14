@@ -172,22 +172,22 @@ class AI_DB_Optimizer {
         }
         
         /* translators: %s is the site name */
-        $subject = sprintf(__('Database Optimization Report - %s', 'ai-database-optimizer'), get_bloginfo('name'));
+        $subject = sprintf(__('Database Optimization Report - %s', 'db_ai_optimizer'), get_bloginfo('name'));
         
         /* translators: %s is the current date and time */
-        $message = sprintf(__('Database optimization completed on %s.', 'ai-database-optimizer'), current_time('mysql')) . "\n\n";
+        $message = sprintf(__('Database optimization completed on %s.', 'db_ai_optimizer'), current_time('mysql')) . "\n\n";
         
         /* translators: %s is the optimization level (low/medium/high) */
-        $message .= sprintf(__('Optimization Level: %s', 'ai-database-optimizer'), $settings['optimization_level']) . "\n";
+        $message .= sprintf(__('Optimization Level: %s', 'db_ai_optimizer'), $settings['optimization_level']) . "\n";
         
         /* translators: %d is the number of database tables that were affected */
-        $message .= sprintf(__('Tables Affected: %d', 'ai-database-optimizer'), count($result['tables_affected'])) . "\n";
+        $message .= sprintf(__('Tables Affected: %d', 'db_ai_optimizer'), count($result['tables_affected'])) . "\n";
         
         /* translators: %.2f is the performance improvement percentage */
-        $message .= sprintf(__('Performance Impact: %.2f%%', 'ai-database-optimizer'), $result['performance_impact']) . "\n\n";
+        $message .= sprintf(__('Performance Impact: %.2f%%', 'db_ai_optimizer'), $result['performance_impact']) . "\n\n";
         
         if (!empty($result['recommendations'])) {
-            $message .= __('Recommendations:', 'ai-database-optimizer') . "\n";
+            $message .= __('Recommendations:', 'db_ai_optimizer') . "\n";
             foreach ($result['recommendations'] as $recommendation) {
                 $message .= "- " . sanitize_text_field($recommendation) . "\n";
             }

@@ -42,10 +42,10 @@ public function __construct($analyzer, $optimization_engine) {
      */
     public function add_admin_menu() {
         add_management_page(
-            __('AI DB Optimizer', 'ai-database-optimizer'),
-            __('AI DB Optimizer', 'ai-database-optimizer'),
+            __('AI DB Optimizer', 'db_ai_optimizer'),
+            __('AI DB Optimizer', 'db_ai_optimizer'),
             'manage_options',
-            'ai-database-optimizer',
+            'db_ai_optimizer',
             [$this, 'render_admin_page']
         );
     }
@@ -54,7 +54,7 @@ public function __construct($analyzer, $optimization_engine) {
  * Register admin assets
  */
 public function register_assets($hook) {
-    if ($hook != 'tools_page_ai-database-optimizer') {
+    if ($hook != 'tools_page_db_ai_optimizer') {
         return;
     }
     
@@ -68,14 +68,14 @@ public function register_assets($hook) {
     );
     
     wp_enqueue_style(
-        'ai-database-optimizer-admin',
+        'db_ai_optimizer-admin',
         FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_URL . 'assets/css/ai-optimizer-admin.css',
         [],
         FULGID_AI_DATABASE_OPTIMIZER_VERSION
     );
     
     wp_enqueue_script(
-        'ai-database-optimizer-admin',
+        'db_ai_optimizer-admin',
         FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_URL . 'admin/js/ai-optimizer-admin.js',
         ['jquery', 'chartjs'],
         FULGID_AI_DATABASE_OPTIMIZER_VERSION,
@@ -83,13 +83,13 @@ public function register_assets($hook) {
     );
     
     wp_localize_script(
-        'ai-database-optimizer-admin',
+        'db_ai_optimizer-admin',
         'aiDbOptimizer',
         [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('fulgid_ai_db_optimizer_nonce'),
-            'analyzing_text' => __('Analyzing database...', 'ai-database-optimizer'),
-            'optimizing_text' => __('Optimizing database...', 'ai-database-optimizer'),
+            'analyzing_text' => __('Analyzing database...', 'db_ai_optimizer'),
+            'optimizing_text' => __('Optimizing database...', 'db_ai_optimizer'),
         ]
     );
 }
@@ -102,23 +102,23 @@ public function register_assets($hook) {
 public function render_admin_page() {
     $settings = get_option('fulgid_ai_db_optimizer_settings');
     ?>
-    <div class="wrap ai-database-optimizer-wrap">
-        <div class="ai-database-optimizer-header">
-            <div class="ai-database-optimizer-logo">
+    <div class="wrap db_ai_optimizer-wrap">
+        <div class="db_ai_optimizer-header">
+            <div class="db_ai_optimizer-logo">
                 <svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M274.5 279C274.5 292.531 263.531 303.5 250 303.5C236.469 303.5 225.5 292.531 225.5 279M274.5 279C274.5 265.469 263.531 254.5 250 254.5M274.5 279H300.5M225.5 279C225.5 265.469 236.469 254.5 250 254.5M225.5 279H195.5M250 254.5V205.5M250 205.5C311.25 205.5 360.25 189.085 360.25 168.75V95.25M250 205.5C188.75 205.5 139.75 189.085 139.75 168.75V95.25M360.25 95.25C360.25 115.546 310.89 132 250 132C189.111 132 139.75 115.546 139.75 95.25M360.25 95.25C360.25 74.9536 310.89 58.5 250 58.5C189.111 58.5 139.75 74.9536 139.75 95.25" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M335 402.25L329.121 316.993C328.197 303.608 327.736 296.915 324.835 291.842C322.281 287.375 318.435 283.786 313.803 281.545C308.542 279 301.834 279 288.417 279H211.583C198.166 279 191.458 279 186.197 281.545C181.565 283.786 177.72 287.375 175.165 291.842C172.264 296.915 171.803 303.608 170.88 316.993L165 402.25M335 402.25C335 418.68 321.68 432 305.25 432H194.75C178.32 432 165 418.68 165 402.25M335 402.25C335 385.82 321.68 372.5 305.25 372.5H194.75C178.32 372.5 165 385.82 165 402.25M199 402.25H199.085M250 402.25H301" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
 
             </div>
-            <h1><?php esc_html_e('AI Database Optimizer', 'ai-database-optimizer'); ?></h1>
+            <h1><?php esc_html_e('AI Database Optimizer', 'db_ai_optimizer'); ?></h1>
         </div>
         
-        <div class="ai-database-optimizer-main">
-            <div class="ai-database-optimizer-dashboard">
+        <div class="db_ai_optimizer-main">
+            <div class="db_ai_optimizer-dashboard">
                 <div class="flex" style="display: flex; flex-wrap: wrap; gap: 20px; width: 100%;">
-                    <div class="ai-database-optimizer-card">
-                        <h2><?php esc_html_e('Database Health Dashboard', 'ai-database-optimizer'); ?></h2>
+                    <div class="db_ai_optimizer-card">
+                        <h2><?php esc_html_e('Database Health Dashboard', 'db_ai_optimizer'); ?></h2>
                         
                         <div class="ai-db-health-indicator">
                             <?php 
@@ -140,26 +140,26 @@ public function render_admin_page() {
                                 <h3>
                                     <?php 
                                     if ($health_score >= 80) {
-                                        esc_html_e('Excellent Health', 'ai-database-optimizer');
+                                        esc_html_e('Excellent Health', 'db_ai_optimizer');
                                     } elseif ($health_score >= 60) {
-                                        esc_html_e('Good Health', 'ai-database-optimizer');
+                                        esc_html_e('Good Health', 'db_ai_optimizer');
                                     } elseif ($health_score >= 40) {
-                                        esc_html_e('Fair Health', 'ai-database-optimizer');
+                                        esc_html_e('Fair Health', 'db_ai_optimizer');
                                     } else {
-                                        esc_html_e('Poor Health', 'ai-database-optimizer');
+                                        esc_html_e('Poor Health', 'db_ai_optimizer');
                                     }
                                     ?>
                                 </h3>
                                 <p>
                                     <?php 
                                     if ($health_score >= 80) {
-                                        esc_html_e('Your database is performing well with optimal structure.', 'ai-database-optimizer');
+                                        esc_html_e('Your database is performing well with optimal structure.', 'db_ai_optimizer');
                                     } elseif ($health_score >= 60) {
-                                        esc_html_e('Your database is performing adequately but could benefit from some optimizations.', 'ai-database-optimizer');
+                                        esc_html_e('Your database is performing adequately but could benefit from some optimizations.', 'db_ai_optimizer');
                                     } elseif ($health_score >= 40) {
-                                        esc_html_e('Your database needs attention to improve performance.', 'ai-database-optimizer');
+                                        esc_html_e('Your database needs attention to improve performance.', 'db_ai_optimizer');
                                     } else {
-                                        esc_html_e('Your database requires immediate optimization to improve performance.', 'ai-database-optimizer');
+                                        esc_html_e('Your database requires immediate optimization to improve performance.', 'db_ai_optimizer');
                                     }
                                     ?>
                                 </p>
@@ -172,23 +172,23 @@ public function render_admin_page() {
                         
                         
                         
-                        <div class="ai-database-optimizer-actions">
+                        <div class="db_ai_optimizer-actions">
                             <button id="ai-db-analyze" class="button button-primary">
                             <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M20 20V13M12 20V10M4 20L4 16M13.4067 5.0275L18.5751 6.96567M10.7988 5.40092L5.20023 9.59983M21.0607 6.43934C21.6464 7.02513 21.6464 7.97487 21.0607 8.56066C20.4749 9.14645 19.5251 9.14645 18.9393 8.56066C18.3536 7.97487 18.3536 7.02513 18.9393 6.43934C19.5251 5.85355 20.4749 5.85355 21.0607 6.43934ZM5.06066 9.43934C5.64645 10.0251 5.64645 10.9749 5.06066 11.5607C4.47487 12.1464 3.52513 12.1464 2.93934 11.5607C2.35355 10.9749 2.35355 10.0251 2.93934 9.43934C3.52513 8.85355 4.47487 8.85355 5.06066 9.43934ZM13.0607 3.43934C13.6464 4.02513 13.6464 4.97487 13.0607 5.56066C12.4749 6.14645 11.5251 6.14645 10.9393 5.56066C10.3536 4.97487 10.3536 4.02513 10.9393 3.43934C11.5251 2.85355 12.4749 2.85355 13.0607 3.43934Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
-                                <?php esc_html_e('Analyze Database', 'ai-database-optimizer'); ?>
+                                <?php esc_html_e('Analyze Database', 'db_ai_optimizer'); ?>
                             </button>
                             <button id="ai-db-optimize" class="button" disabled>
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                                     <path d="M19.89 10.105a8.696 8.696 0 0 0-.789-1.456l-1.658 1.119a6.606 6.606 0 0 1 .987 2.345 6.659 6.659 0 0 1 0 2.648 6.495 6.495 0 0 1-.384 1.231 6.404 6.404 0 0 1-.603 1.112 6.654 6.654 0 0 1-1.776 1.775 6.606 6.606 0 0 1-2.343.987 6.734 6.734 0 0 1-2.646 0 6.55 6.55 0 0 1-3.317-1.788 6.605 6.605 0 0 1-1.408-2.088 6.613 6.613 0 0 1-.382-1.23 6.627 6.627 0 0 1 .382-3.877A6.551 6.551 0 0 1 7.36 8.797 6.628 6.628 0 0 1 9.446 7.39c.395-.167.81-.296 1.23-.382.107-.022.216-.032.324-.049V10l5-4-5-4v2.938a8.805 8.805 0 0 0-.725.111 8.512 8.512 0 0 0-3.063 1.29A8.566 8.566 0 0 0 4.11 16.77a8.535 8.535 0 0 0 1.835 2.724 8.614 8.614 0 0 0 2.721 1.833 8.55 8.55 0 0 0 5.061.499 8.576 8.576 0 0 0 6.162-5.056c.22-.52.389-1.061.5-1.608a8.643 8.643 0 0 0 0-3.45 8.684 8.684 0 0 0-.499-1.607z"/>
                                 </svg>
-                                <?php esc_html_e('Optimize Now', 'ai-database-optimizer'); ?>
+                                <?php esc_html_e('Optimize Now', 'db_ai_optimizer'); ?>
                             </button>
                         </div>
 
-                         <div class="ai-database-optimizer-card ai-db-performance-card">
-                            <h2><?php esc_html_e('Performance Monitoring', 'ai-database-optimizer'); ?></h2>
+                         <div class="db_ai_optimizer-card ai-db-performance-card">
+                            <h2><?php esc_html_e('Performance Monitoring', 'db_ai_optimizer'); ?></h2>
                             <div class="ai-db-performance-chart-container">
                                 <canvas id="db-performance-chart"></canvas>
                             </div>
@@ -197,30 +197,30 @@ public function render_admin_page() {
                 
                    
                 </div>
-                 <div class="ai-database-optimizer-card">
-                        <h2><?php esc_html_e('Analysis & Optimization Results', 'ai-database-optimizer'); ?></h2>
-                        <div id="ai-db-results" class="ai-database-optimizer-results">
-                            <p><?php esc_html_e('Click "Analyze Database" to start.', 'ai-database-optimizer'); ?></p>
+                 <div class="db_ai_optimizer-card">
+                        <h2><?php esc_html_e('Analysis & Optimization Results', 'db_ai_optimizer'); ?></h2>
+                        <div id="ai-db-results" class="db_ai_optimizer-results">
+                            <p><?php esc_html_e('Click "Analyze Database" to start.', 'db_ai_optimizer'); ?></p>
                         </div>
                     </div>
                 <div class="flex">
-                <div class="ai-database-optimizer-card">
-                        <h2><?php esc_html_e('Optimization History', 'ai-database-optimizer'); ?></h2>
+                <div class="db_ai_optimizer-card">
+                        <h2><?php esc_html_e('Optimization History', 'db_ai_optimizer'); ?></h2>
                         <?php $this->render_optimization_history(); ?>
                 </div>
                 </div>
             </div>
             
-            <div class="ai-database-optimizer-sidebar">
-                <div class="ai-database-optimizer-card">
-                    <h2><?php esc_html_e('AI Insights', 'ai-database-optimizer'); ?></h2>
+            <div class="db_ai_optimizer-sidebar">
+                <div class="db_ai_optimizer-card">
+                    <h2><?php esc_html_e('AI Insights', 'db_ai_optimizer'); ?></h2>
                     <div id="ai-db-insights">
                         <?php $this->render_ai_insights(); ?>
                     </div>
                 </div>
                 
-                <div class="ai-database-optimizer-card">
-                    <h2><?php esc_html_e('Settings', 'ai-database-optimizer'); ?></h2>
+                <div class="db_ai_optimizer-card">
+                    <h2><?php esc_html_e('Settings', 'db_ai_optimizer'); ?></h2>
                     <form method="post" action="options.php" class="ai-db-settings-form">
                         <?php
                         settings_fields('fulgid_ai_db_optimizer_settings');
@@ -228,51 +228,51 @@ public function render_admin_page() {
                         
                         <table class="form-table">
                             <tr>
-                                <th scope="row"><?php esc_html_e('Schedule Frequency', 'ai-database-optimizer'); ?></th>
+                                <th scope="row"><?php esc_html_e('Schedule Frequency', 'db_ai_optimizer'); ?></th>
                                 <td>
                                     <select name="fulgid_ai_db_optimizer_settings[schedule_frequency]">
                                         <option value="daily" <?php selected(isset($settings['schedule_frequency']) ? $settings['schedule_frequency'] : '', 'daily'); ?>>
-                                            <?php esc_html_e('Daily', 'ai-database-optimizer'); ?>
+                                            <?php esc_html_e('Daily', 'db_ai_optimizer'); ?>
                                         </option>
                                         <option value="weekly" <?php selected(isset($settings['schedule_frequency']) ? $settings['schedule_frequency'] : '', 'weekly'); ?>>
-                                            <?php esc_html_e('Weekly', 'ai-database-optimizer'); ?>
+                                            <?php esc_html_e('Weekly', 'db_ai_optimizer'); ?>
                                         </option>
                                         <option value="monthly" <?php selected(isset($settings['schedule_frequency']) ? $settings['schedule_frequency'] : '', 'monthly'); ?>>
-                                            <?php esc_html_e('Monthly', 'ai-database-optimizer'); ?>
+                                            <?php esc_html_e('Monthly', 'db_ai_optimizer'); ?>
                                         </option>
                                     </select>
                                 </td>
                             </tr>
                             <tr>
-                                <th scope="row"><?php esc_html_e('Auto-Optimize', 'ai-database-optimizer'); ?></th>
+                                <th scope="row"><?php esc_html_e('Auto-Optimize', 'db_ai_optimizer'); ?></th>
                                 <td>
                                     <label>
                                         <input type="checkbox" name="fulgid_ai_db_optimizer_settings[auto_optimize]" value="1" <?php checked(isset($settings['auto_optimize']) ? $settings['auto_optimize'] : false); ?>>
-                                        <?php esc_html_e('Enable automatic database optimization', 'ai-database-optimizer'); ?>
+                                        <?php esc_html_e('Enable automatic database optimization', 'db_ai_optimizer'); ?>
                                     </label>
                                 </td>
                             </tr>
                             <tr>
-                                <th scope="row"><?php esc_html_e('Optimization Level', 'ai-database-optimizer'); ?></th>
+                                <th scope="row"><?php esc_html_e('Optimization Level', 'db_ai_optimizer'); ?></th>
                                 <td>
                                     <select name="fulgid_ai_db_optimizer_settings[optimization_level]">
                                         <option value="low" <?php selected(isset($settings['optimization_level']) ? $settings['optimization_level'] : '', 'low'); ?>>
-                                            <?php esc_html_e('Low - Basic optimizations only', 'ai-database-optimizer'); ?>
+                                            <?php esc_html_e('Low - Basic optimizations only', 'db_ai_optimizer'); ?>
                                         </option>
                                         <option value="medium" <?php selected(isset($settings['optimization_level']) ? $settings['optimization_level'] : '', 'medium'); ?>>
-                                            <?php esc_html_e('Medium - Standard optimizations', 'ai-database-optimizer'); ?>
+                                            <?php esc_html_e('Medium - Standard optimizations', 'db_ai_optimizer'); ?>
                                         </option>
                                         <option value="high" <?php selected(isset($settings['optimization_level']) ? $settings['optimization_level'] : '', 'high'); ?>>
-                                            <?php esc_html_e('High - Aggressive optimizations', 'ai-database-optimizer'); ?>
+                                            <?php esc_html_e('High - Aggressive optimizations', 'db_ai_optimizer'); ?>
                                         </option>
                                     </select>
                                 </td>
                             </tr>
                             <tr>
-                                <th scope="row"><?php esc_html_e('Notification Email', 'ai-database-optimizer'); ?></th>
+                                <th scope="row"><?php esc_html_e('Notification Email', 'db_ai_optimizer'); ?></th>
                                 <td>
                                     <input type="email" name="fulgid_ai_db_optimizer_settings[notification_email]" value="<?php echo esc_attr(isset($settings['notification_email']) ? $settings['notification_email'] : get_option('admin_email')); ?>" class="regular-text">
-                                    <p class="description"><?php esc_html_e('Email to receive optimization reports', 'ai-database-optimizer'); ?></p>
+                                    <p class="description"><?php esc_html_e('Email to receive optimization reports', 'db_ai_optimizer'); ?></p>
                                 </td>
                             </tr>
                         </table>
@@ -282,8 +282,8 @@ public function render_admin_page() {
                 </div>
 
                 <div class="flex">
-                    <div class="ai-database-optimizer-card">
-                        <h2><?php esc_html_e('Database Composition', 'ai-database-optimizer'); ?></h2>
+                    <div class="db_ai_optimizer-card">
+                        <h2><?php esc_html_e('Database Composition', 'db_ai_optimizer'); ?></h2>
                         <div class="ai-db-chart-container">
                             <canvas id="db-composition-chart" width="400" height="300"></canvas>
                         </div>
@@ -315,9 +315,22 @@ public function render_admin_page() {
         // Get row count (approximate)
         $total_rows = 0;
         foreach ($tables as $table) {
-            $table_name = reset($table);
-            $count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
-            $total_rows += $count;
+            // If $table is an object, access the table name property directly
+            if (is_object($table)) {
+                // Common property names in WordPress database results
+                $table_name = $table->Name ?? $table->TABLE_NAME ?? $table->table_name ?? '';
+            } elseif (is_array($table)) {
+                // If it's an array, get the first element
+                $table_name = reset($table);
+            } else {
+                // If it's a string, use it directly
+                $table_name = $table;
+            }
+            
+            if (!empty($table_name)) {
+                $count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
+                $total_rows += $count;
+            }
         }
         
         // Get last optimization time
@@ -326,32 +339,32 @@ public function render_admin_page() {
         
         ?>
         <div class="ai-db-status-metric">
-            <h3><?php esc_html_e('Size', 'ai-database-optimizer'); ?></h3>
+            <h3><?php esc_html_e('Size', 'db_ai_optimizer'); ?></h3>
             <div class="value"><?php echo size_format($db_size->size); ?></div>
-            <div class="description"><?php esc_html_e('Total database size', 'ai-database-optimizer'); ?></div>
+            <div class="description"><?php esc_html_e('Total database size', 'db_ai_optimizer'); ?></div>
         </div>
         
         <div class="ai-db-status-metric">
-            <h3><?php esc_html_e('Tables', 'ai-database-optimizer'); ?></h3>
+            <h3><?php esc_html_e('Tables', 'db_ai_optimizer'); ?></h3>
             <div class="value"><?php echo $table_count; ?></div>
-            <div class="description"><?php esc_html_e('WordPress tables', 'ai-database-optimizer'); ?></div>
+            <div class="description"><?php esc_html_e('WordPress tables', 'db_ai_optimizer'); ?></div>
         </div>
         
         <div class="ai-db-status-metric">
-            <h3><?php esc_html_e('Rows', 'ai-database-optimizer'); ?></h3>
+            <h3><?php esc_html_e('Rows', 'db_ai_optimizer'); ?></h3>
             <div class="value"><?php echo number_format($total_rows); ?></div>
-            <div class="description"><?php esc_html_e('Total data rows', 'ai-database-optimizer'); ?></div>
+            <div class="description"><?php esc_html_e('Total data rows', 'db_ai_optimizer'); ?></div>
         </div>
         
         <div class="ai-db-status-metric">
-            <h3><?php esc_html_e('Last Optimized', 'ai-database-optimizer'); ?></h3>
+            <h3><?php esc_html_e('Last Optimized', 'db_ai_optimizer'); ?></h3>
             <div class="value">
                 <?php 
                 if ($last_optimization) {
                     echo human_time_diff(strtotime($last_optimization), current_time('timestamp'));
-                    echo ' ' . __('ago', 'ai-database-optimizer');
+                    echo ' ' . __('ago', 'db_ai_optimizer');
                 } else {
-                    esc_html_e('Never', 'ai-database-optimizer');
+                    esc_html_e('Never', 'db_ai_optimizer');
                 }
                 ?>
             </div>
@@ -360,7 +373,7 @@ public function render_admin_page() {
                 if ($last_optimization) {
                     echo date_i18n(get_option('date_format'), strtotime($last_optimization));
                 } else {
-                    esc_html_e('No optimization yet', 'ai-database-optimizer');
+                    esc_html_e('No optimization yet', 'db_ai_optimizer');
                 }
                 ?>
             </div>
@@ -487,10 +500,10 @@ private function render_ai_insights() {
     ");
     
     if (!empty($tables_with_overhead)) {
-        $insight = __('Tables with significant overhead detected', 'ai-database-optimizer');
+        $insight = __('Tables with significant overhead detected', 'db_ai_optimizer');
         $details = sprintf(
             /* translators: %1$s is the table name, %2$s is the overhead size */
-            __('Optimizing the %1$s table could free up %2$s of space.', 'ai-database-optimizer'),
+            __('Optimizing the %1$s table could free up %2$s of space.', 'db_ai_optimizer'),
             '<strong>' . esc_html($tables_with_overhead[0]->TABLE_NAME) . '</strong>',
             '<strong>' . size_format($tables_with_overhead[0]->DATA_FREE) . '</strong>'
         );
@@ -516,10 +529,10 @@ private function render_ai_insights() {
     }
     
     if (!empty($missing_index_tables)) {
-        $insight = __('Missing important database indexes', 'ai-database-optimizer');
+        $insight = __('Missing important database indexes', 'db_ai_optimizer');
         $details = sprintf(
             /* translators: %s is the comma-separated list of table names */
-            __('Adding indexes to %s could improve query performance by up to 30%%.', 'ai-database-optimizer'),
+            __('Adding indexes to %s could improve query performance by up to 30%%.', 'db_ai_optimizer'),
             '<strong>' . implode(', ', $missing_index_tables) . '</strong>'
         );
         $insights[] = [
@@ -538,10 +551,10 @@ private function render_ai_insights() {
     ");
     
     if ($transient_count > 200) {
-        $insight = __('High number of transient options', 'ai-database-optimizer');
+        $insight = __('High number of transient options', 'db_ai_optimizer');
         $details = sprintf(
             /* translators: %s is the number of transient options */
-            __('Found %s transient options in your database. Cleaning expired transients could improve performance.', 'ai-database-optimizer'),
+            __('Found %s transient options in your database. Cleaning expired transients could improve performance.', 'db_ai_optimizer'),
             '<strong>' . number_format($transient_count) . '</strong>'
         );
         $insights[] = [
@@ -560,10 +573,10 @@ private function render_ai_insights() {
     ");
     
     if ($revision_count > 200) {
-        $insight = __('High number of post revisions', 'ai-database-optimizer');
+        $insight = __('High number of post revisions', 'db_ai_optimizer');
         $details = sprintf(
             /* translators: %s is the number of post revisions */
-            __('Your database contains %s post revisions. Consider limiting or removing old revisions.', 'ai-database-optimizer'),
+            __('Your database contains %s post revisions. Consider limiting or removing old revisions.', 'db_ai_optimizer'),
             '<strong>' . number_format($revision_count) . '</strong>'
         );
         $insights[] = [
@@ -582,10 +595,10 @@ private function render_ai_insights() {
     ");
     
     if ($autoload_size > 1 * 1024 * 1024) { // More than 1MB
-        $insight = __('Large autoloaded options detected', 'ai-database-optimizer');
+        $insight = __('Large autoloaded options detected', 'db_ai_optimizer');
         $details = sprintf(
             /* translators: %s is the size of autoloaded options */
-            __('Your site loads %s of autoloaded options on every page. This can slow down your site.', 'ai-database-optimizer'),
+            __('Your site loads %s of autoloaded options on every page. This can slow down your site.', 'db_ai_optimizer'),
             '<strong>' . size_format($autoload_size) . '</strong>'
         );
         $insights[] = [
@@ -599,8 +612,8 @@ private function render_ai_insights() {
     // Add generic insight if none found
     if (empty($insights)) {
         $insights[] = [
-            'title' => __('No significant issues detected', 'ai-database-optimizer'),
-            'details' => __('Your database appears to be in good health. Regular maintenance is still recommended.', 'ai-database-optimizer'),
+            'title' => __('No significant issues detected', 'db_ai_optimizer'),
+            'details' => __('Your database appears to be in good health. Regular maintenance is still recommended.', 'db_ai_optimizer'),
             'type' => 'success',
             'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
         ];
@@ -707,7 +720,7 @@ private function render_ai_insights() {
         ob_start();
         ?>
         <div class="ai-db-analysis-results">
-            <h3><?php esc_html_e('Analysis Results', 'ai-database-optimizer'); ?></h3>
+            <h3><?php esc_html_e('Analysis Results', 'db_ai_optimizer'); ?></h3>
             
             <?php
             $issue_count = 0;
@@ -726,13 +739,13 @@ private function render_ai_insights() {
             <div class="ai-db-issue-count <?php echo $issue_count > 0 ? 'has-issues' : 'no-issues'; ?>">
                 <?php 
                 /* translators: %d is the number of issues found in the database */
-                printf(_n('%d issue found', '%d issues found', $issue_count, 'ai-database-optimizer'), $issue_count); 
+                printf(_n('%d issue found', '%d issues found', $issue_count, 'db_ai_optimizer'), $issue_count); 
                 ?>
             </div>
             
             <?php if ($issue_count > 0): ?>
                 <div class="ai-db-recommendations">
-                    <h4><?php esc_html_e('AI Recommendations', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('AI Recommendations', 'db_ai_optimizer'); ?></h4>
                     
                     <?php if (!empty($analysis['ai_recommendations'])): ?>
                         <ul>
@@ -747,20 +760,20 @@ private function render_ai_insights() {
                             <?php endforeach; ?>
                         </ul>
                     <?php else: ?>
-                        <p><?php esc_html_e('No specific AI recommendations at this time.', 'ai-database-optimizer'); ?></p>
+                        <p><?php esc_html_e('No specific AI recommendations at this time.', 'db_ai_optimizer'); ?></p>
                     <?php endif; ?>
                 </div>
                 
                 <div class="ai-db-table-issues">
-                    <h4><?php esc_html_e('Table Optimization Opportunities', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('Table Optimization Opportunities', 'db_ai_optimizer'); ?></h4>
                     
                     <table class="widefat">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e('Table', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Size', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Overhead', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Issues', 'ai-database-optimizer'); ?></th>
+                                <th><?php esc_html_e('Table', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Size', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Overhead', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Issues', 'db_ai_optimizer'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -776,16 +789,16 @@ private function render_ai_insights() {
                                 }
                             ?>
                                 <tr>
-                                    <td data-title="<?php esc_html_e('Table', 'ai-database-optimizer'); ?>">
+                                    <td data-title="<?php esc_html_e('Table', 'db_ai_optimizer'); ?>">
                                         <?php echo esc_html($table); ?>
                                     </td>
-                                    <td data-title="<?php esc_html_e('Size', 'ai-database-optimizer'); ?>">
+                                    <td data-title="<?php esc_html_e('Size', 'db_ai_optimizer'); ?>">
                                         <?php echo size_format($table_analysis['data_size'] + $table_analysis['index_size']); ?>
                                     </td>
-                                    <td data-title="<?php esc_html_e('Overhead', 'ai-database-optimizer'); ?>">
+                                    <td data-title="<?php esc_html_e('Overhead', 'db_ai_optimizer'); ?>">
                                         <?php echo size_format($table_analysis['overhead']); ?>
                                     </td>
-                                    <td data-title="<?php esc_html_e('Issues', 'ai-database-optimizer'); ?>">
+                                    <td data-title="<?php esc_html_e('Issues', 'db_ai_optimizer'); ?>">
                                         <?php
                                         if (!empty($table_analysis['suggestions'])) {
                                             echo '<ul class="ai-db-issue-list">';
@@ -802,19 +815,19 @@ private function render_ai_insights() {
                     </table>
                 </div>
                 
-                <div class="ai-database-optimizer-actions">
+                <div class="db_ai_optimizer-actions">
                     <button id="ai-db-optimize" class="button button-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                             <path d="M19.89 10.105a8.696 8.696 0 0 0-.789-1.456l-1.658 1.119a6.606 6.606 0 0 1 .987 2.345 6.659 6.659 0 0 1 0 2.648 6.495 6.495 0 0 1-.384 1.231 6.404 6.404 0 0 1-.603 1.112 6.654 6.654 0 0 1-1.776 1.775 6.606 6.606 0 0 1-2.343.987 6.734 6.734 0 0 1-2.646 0 6.55 6.55 0 0 1-3.317-1.788 6.605 6.605 0 0 1-1.408-2.088 6.613 6.613 0 0 1-.382-1.23 6.627 6.627 0 0 1 .382-3.877A6.551 6.551 0 0 1 7.36 8.797 6.628 6.628 0 0 1 9.446 7.39c.395-.167.81-.296 1.23-.382.107-.022.216-.032.324-.049V10l5-4-5-4v2.938a8.805 8.805 0 0 0-.725.111 8.512 8.512 0 0 0-3.063 1.29A8.566 8.566 0 0 0 4.11 16.77a8.535 8.535 0 0 0 1.835 2.724 8.614 8.614 0 0 0 2.721 1.833 8.55 8.55 0 0 0 5.061.499 8.576 8.576 0 0 0 6.162-5.056c.22-.52.389-1.061.5-1.608a8.643 8.643 0 0 0 0-3.45 8.684 8.684 0 0 0-.499-1.607z"/>
                         </svg>
-                        <?php esc_html_e('Optimize Now', 'ai-database-optimizer'); ?>
+                        <?php esc_html_e('Optimize Now', 'db_ai_optimizer'); ?>
                     </button>
                 </div>
                 
             <?php else: ?>
                 <div class="ai-db-optimization-summary">
-                    <p><?php esc_html_e('Your database appears to be in good shape! No significant issues were found.', 'ai-database-optimizer'); ?></p>
-                    <p><?php esc_html_e('Regular maintenance is still recommended to keep your database running optimally.', 'ai-database-optimizer'); ?></p>
+                    <p><?php esc_html_e('Your database appears to be in good shape! No significant issues were found.', 'db_ai_optimizer'); ?></p>
+                    <p><?php esc_html_e('Regular maintenance is still recommended to keep your database running optimally.', 'db_ai_optimizer'); ?></p>
                 </div>
             <?php endif; ?>
         </div>
@@ -829,14 +842,14 @@ private function render_ai_insights() {
         ob_start();
         ?>
         <div class="ai-db-optimization-results">
-            <h3><?php esc_html_e('Optimization Results', 'ai-database-optimizer'); ?></h3>
+            <h3><?php esc_html_e('Optimization Results', 'db_ai_optimizer'); ?></h3>
             
             <div class="ai-db-optimization-summary">
                 <p>
                     <?php 
                     /* translators: %s is the performance improvement percentage */
                     printf(
-                        __('Database optimization completed with estimated %s%% performance improvement.', 'ai-database-optimizer'),
+                        __('Database optimization completed with estimated %s%% performance improvement.', 'db_ai_optimizer'),
                         '<strong>' . number_format($results['performance_impact'], 2) . '</strong>'
                     ); 
                     ?>
@@ -845,24 +858,24 @@ private function render_ai_insights() {
                 <div class="ai-db-optimization-metrics">
                     <div class="ai-db-optimization-metric">
                         <div class="metric-value"><?php echo count($results['tables_affected']); ?></div>
-                        <div class="metric-label"><?php esc_html_e('Tables Optimized', 'ai-database-optimizer'); ?></div>
+                        <div class="metric-label"><?php esc_html_e('Tables Optimized', 'db_ai_optimizer'); ?></div>
                     </div>
                     
                     <div class="ai-db-optimization-metric">
                         <div class="metric-value"><?php echo count($results['optimization_actions']); ?></div>
-                        <div class="metric-label"><?php esc_html_e('Actions Performed', 'ai-database-optimizer'); ?></div>
+                        <div class="metric-label"><?php esc_html_e('Actions Performed', 'db_ai_optimizer'); ?></div>
                     </div>
                     
                     <div class="ai-db-optimization-metric">
                         <div class="metric-value"><?php echo number_format($results['performance_impact'], 1); ?>%</div>
-                        <div class="metric-label"><?php esc_html_e('Performance Gain', 'ai-database-optimizer'); ?></div>
+                        <div class="metric-label"><?php esc_html_e('Performance Gain', 'db_ai_optimizer'); ?></div>
                     </div>
                 </div>
             </div>
             
             <?php if (!empty($results['optimization_actions'])): ?>
                 <div class="ai-db-actions-performed">
-                    <h4><?php esc_html_e('Actions Performed', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('Actions Performed', 'db_ai_optimizer'); ?></h4>
                     <ul>
                         <?php foreach ($results['optimization_actions'] as $action): ?>
                             <li>
@@ -876,7 +889,7 @@ private function render_ai_insights() {
             
             <?php if (!empty($results['recommendations'])): ?>
                 <div class="ai-db-future-recommendations">
-                    <h4><?php esc_html_e('Future Recommendations', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('Future Recommendations', 'db_ai_optimizer'); ?></h4>
                     <ul>
                         <?php foreach ($results['recommendations'] as $recommendation): ?>
                             <li><?php echo esc_html($recommendation); ?></li>
@@ -904,20 +917,20 @@ private function render_ai_insights() {
         
         // Get last optimization time
         $settings = get_option('fulgid_ai_db_optimizer_settings');
-        $last_optimization = isset($settings['last_optimization']) ? $settings['last_optimization'] : __('Never', 'ai-database-optimizer');
+        $last_optimization = isset($settings['last_optimization']) ? $settings['last_optimization'] : __('Never', 'db_ai_optimizer');
         
         ?>
         <ul class="ai-db-status-list">
             <li>
-                <span class="ai-db-status-label"><?php esc_html_e('Database Size:', 'ai-database-optimizer'); ?></span>
+                <span class="ai-db-status-label"><?php esc_html_e('Database Size:', 'db_ai_optimizer'); ?></span>
                 <span class="ai-db-status-value"><?php echo size_format($db_size->size); ?></span>
             </li>
             <li>
-                <span class="ai-db-status-label"><?php esc_html_e('Tables:', 'ai-database-optimizer'); ?></span>
+                <span class="ai-db-status-label"><?php esc_html_e('Tables:', 'db_ai_optimizer'); ?></span>
                 <span class="ai-db-status-value"><?php echo $table_count; ?></span>
             </li>
             <li>
-                <span class="ai-db-status-label"><?php esc_html_e('Last Optimization:', 'ai-database-optimizer'); ?></span>
+                <span class="ai-db-status-label"><?php esc_html_e('Last Optimization:', 'db_ai_optimizer'); ?></span>
                 <span class="ai-db-status-value"><?php echo $last_optimization; ?></span>
             </li>
         </ul>
@@ -934,7 +947,7 @@ private function render_ai_insights() {
         $history = $wpdb->get_results("SELECT * FROM $table_name ORDER BY optimization_time DESC LIMIT 5");
         
         if (empty($history)) {
-            echo '<p>' . __('No optimization history available.', 'ai-database-optimizer') . '</p>';
+            echo '<p>' . __('No optimization history available.', 'db_ai_optimizer') . '</p>';
             return;
         }
         
@@ -942,10 +955,10 @@ private function render_ai_insights() {
         <table class="">
             <thead>
                 <tr>
-                    <th><?php esc_html_e('Date', 'ai-database-optimizer'); ?></th>
-                    <th><?php esc_html_e('Type', 'ai-database-optimizer'); ?></th>
-                    <th><?php esc_html_e('Tables', 'ai-database-optimizer'); ?></th>
-                    <th><?php esc_html_e('Impact', 'ai-database-optimizer'); ?></th>
+                    <th><?php esc_html_e('Date', 'db_ai_optimizer'); ?></th>
+                    <th><?php esc_html_e('Type', 'db_ai_optimizer'); ?></th>
+                    <th><?php esc_html_e('Tables', 'db_ai_optimizer'); ?></th>
+                    <th><?php esc_html_e('Impact', 'db_ai_optimizer'); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -969,7 +982,7 @@ private function render_ai_insights() {
         check_ajax_referer('fulgid_ai_db_optimizer_nonce', 'nonce');
         
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'ai-database-optimizer')]);
+            wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'db_ai_optimizer')]);
         }
         
         $analysis = $this->analyzer->analyze_database();
@@ -990,13 +1003,13 @@ private function render_ai_insights() {
         check_ajax_referer('fulgid_ai_db_optimizer_nonce', 'nonce');
         
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'ai-database-optimizer')]);
+            wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'db_ai_optimizer')]);
         }
         
         $analysis = isset($_POST['analysis']) ? $_POST['analysis'] : null;
         
         if (!$analysis) {
-            wp_send_json_error(['message' => __('No analysis data provided.', 'ai-database-optimizer')]);
+            wp_send_json_error(['message' => __('No analysis data provided.', 'db_ai_optimizer')]);
         }
         
         $analysis = json_decode(stripslashes($analysis), true);
@@ -1026,7 +1039,7 @@ public function ajax_collect_performance_data() {
     check_ajax_referer('fulgid_ai_db_optimizer_nonce', 'nonce');
     
     if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'ai-database-optimizer')]);
+        wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'db_ai_optimizer')]);
     }
     
     global $wpdb;
@@ -1363,52 +1376,52 @@ private function format_performance_data($performance_data) {
     ob_start();
     ?>
     <div class="ai-db-performance-results">
-        <h3><?php esc_html_e('Database Performance Data', 'ai-database-optimizer'); ?></h3>
+        <h3><?php esc_html_e('Database Performance Data', 'db_ai_optimizer'); ?></h3>
         
         <div class="ai-db-performance-summary">
             <p>
-                <?php esc_html_e('Performance data collected successfully. This information will be used to provide more accurate AI-based optimization recommendations.', 'ai-database-optimizer'); ?>
+                <?php esc_html_e('Performance data collected successfully. This information will be used to provide more accurate AI-based optimization recommendations.', 'db_ai_optimizer'); ?>
             </p>
         </div>
         
         <div class="ai-db-performance-tabs">
             <ul class="ai-db-tabs-nav">
-                <li class="active"><a href="#server-info"><?php esc_html_e('Server Info', 'ai-database-optimizer'); ?></a></li>
-                <li><a href="#table-stats"><?php esc_html_e('Table Statistics', 'ai-database-optimizer'); ?></a></li>
-                <li><a href="#query-performance"><?php esc_html_e('Query Performance', 'ai-database-optimizer'); ?></a></li>
-                <li><a href="#cache-stats"><?php esc_html_e('Cache Information', 'ai-database-optimizer'); ?></a></li>
+                <li class="active"><a href="#server-info"><?php esc_html_e('Server Info', 'db_ai_optimizer'); ?></a></li>
+                <li><a href="#table-stats"><?php esc_html_e('Table Statistics', 'db_ai_optimizer'); ?></a></li>
+                <li><a href="#query-performance"><?php esc_html_e('Query Performance', 'db_ai_optimizer'); ?></a></li>
+                <li><a href="#cache-stats"><?php esc_html_e('Cache Information', 'db_ai_optimizer'); ?></a></li>
                 <?php if (!empty($performance_data['error_logs']['entries'])): ?>
-                <li><a href="#error-logs"><?php esc_html_e('Error Logs', 'ai-database-optimizer'); ?></a></li>
+                <li><a href="#error-logs"><?php esc_html_e('Error Logs', 'db_ai_optimizer'); ?></a></li>
                 <?php endif; ?>
             </ul>
             
             <div class="ai-db-tabs-content">
                 <!-- Server Information -->
                 <div id="server-info" class="ai-db-tab-pane active">
-                    <h4><?php esc_html_e('Database Server Information', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('Database Server Information', 'db_ai_optimizer'); ?></h4>
                     
                     <table class="">
                         <tr>
-                            <th><?php esc_html_e('MySQL Version', 'ai-database-optimizer'); ?></th>
+                            <th><?php esc_html_e('MySQL Version', 'db_ai_optimizer'); ?></th>
                             <td><?php echo esc_html($performance_data['server_info']['mysql_version']); ?></td>
                         </tr>
                         <tr>
-                            <th><?php esc_html_e('PHP Version', 'ai-database-optimizer'); ?></th>
+                            <th><?php esc_html_e('PHP Version', 'db_ai_optimizer'); ?></th>
                             <td><?php echo esc_html($performance_data['server_info']['php_version']); ?></td>
                         </tr>
                         <tr>
-                            <th><?php esc_html_e('WordPress Version', 'ai-database-optimizer'); ?></th>
+                            <th><?php esc_html_e('WordPress Version', 'db_ai_optimizer'); ?></th>
                             <td><?php echo esc_html($performance_data['server_info']['wordpress_version']); ?></td>
                         </tr>
                     </table>
                     
-                    <h4><?php esc_html_e('MySQL Variables', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('MySQL Variables', 'db_ai_optimizer'); ?></h4>
                     <table class="">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e('Variable', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Value', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Recommendation', 'ai-database-optimizer'); ?></th>
+                                <th><?php esc_html_e('Variable', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Value', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Recommendation', 'db_ai_optimizer'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1423,22 +1436,22 @@ private function format_performance_data($performance_data) {
                                             case 'innodb_buffer_pool_size':
                                                 $size_mb = intval($value) / (1024 * 1024);
                                                 if ($size_mb < 128) {
-                                                    esc_html_e('Consider increasing to at least 128MB for better performance', 'ai-database-optimizer');
+                                                    esc_html_e('Consider increasing to at least 128MB for better performance', 'db_ai_optimizer');
                                                 }
                                                 break;
                                                 
                                             case 'query_cache_size':
                                                 $size_mb = intval($value) / (1024 * 1024);
                                                 if ($performance_data['query_cache']['enabled'] && $size_mb < 32) {
-                                                    esc_html_e('Consider increasing to at least 32MB for better caching', 'ai-database-optimizer');
+                                                    esc_html_e('Consider increasing to at least 32MB for better caching', 'db_ai_optimizer');
                                                 } elseif ($performance_data['query_cache']['enabled'] && $size_mb > 256) {
-                                                    esc_html_e('Large query cache may cause overhead, consider reducing', 'ai-database-optimizer');
+                                                    esc_html_e('Large query cache may cause overhead, consider reducing', 'db_ai_optimizer');
                                                 }
                                                 break;
                                                 
                                             case 'table_open_cache':
                                                 if (intval($value) < 400) {
-                                                    esc_html_e('Consider increasing for sites with many tables', 'ai-database-optimizer');
+                                                    esc_html_e('Consider increasing for sites with many tables', 'db_ai_optimizer');
                                                 }
                                                 break;
                                                 
@@ -1455,19 +1468,19 @@ private function format_performance_data($performance_data) {
                 
                 <!-- Table Statistics -->
                 <div id="table-stats" class="ai-db-tab-pane">
-                    <h4><?php esc_html_e('Database Table Statistics', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('Database Table Statistics', 'db_ai_optimizer'); ?></h4>
                     
                     <table class="">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e('Table', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Engine', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Rows', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Size', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Overhead', 'ai-database-optimizer'); ?></th>
+                                <th><?php esc_html_e('Table', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Engine', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Rows', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Size', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Overhead', 'db_ai_optimizer'); ?></th>
                                 <?php if (!empty(current($performance_data['table_stats'])['query_stats'])): ?>
-                                <th><?php esc_html_e('Queries', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Query Time', 'ai-database-optimizer'); ?></th>
+                                <th><?php esc_html_e('Queries', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Query Time', 'db_ai_optimizer'); ?></th>
                                 <?php endif; ?>
                             </tr>
                         </thead>
@@ -1491,7 +1504,7 @@ private function format_performance_data($performance_data) {
                                     <td><?php 
                                         /* translators: %s is the query execution time in seconds */
                                         echo sprintf(
-                                            __('%ss', 'ai-database-optimizer'),
+                                            __('%ss', 'db_ai_optimizer'),
                                             round($stats['query_stats']['total_time'], 2)
                                         ); 
                                         ?>
@@ -1505,7 +1518,7 @@ private function format_performance_data($performance_data) {
                 
                 <!-- Query Performance -->
                 <div id="query-performance" class="ai-db-tab-pane">
-                    <h4><?php esc_html_e('Slow Query Information', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('Slow Query Information', 'db_ai_optimizer'); ?></h4>
                     
                     <?php if ($performance_data['slow_queries']['available']): ?>
                         <p>
@@ -1513,7 +1526,7 @@ private function format_performance_data($performance_data) {
                             if (isset($performance_data['slow_queries']['threshold'])) {
                                 /* translators: %s is the slow query threshold time in seconds */
                                 printf(
-                                    __('Slow query threshold: %s seconds', 'ai-database-optimizer'),
+                                    __('Slow query threshold: %s seconds', 'db_ai_optimizer'),
                                     $performance_data['slow_queries']['threshold']
                                 );
                             }
@@ -1524,13 +1537,13 @@ private function format_performance_data($performance_data) {
                             <table class="">
                                 <thead>
                                     <tr>
-                                        <th><?php esc_html_e('Time (s)', 'ai-database-optimizer'); ?></th>
-                                        <th><?php esc_html_e('Query', 'ai-database-optimizer'); ?></th>
+                                        <th><?php esc_html_e('Time (s)', 'db_ai_optimizer'); ?></th>
+                                        <th><?php esc_html_e('Query', 'db_ai_optimizer'); ?></th>
                                         <?php if (isset($performance_data['slow_queries']['queries'][0]['state'])): ?>
-                                        <th><?php esc_html_e('State', 'ai-database-optimizer'); ?></th>
+                                        <th><?php esc_html_e('State', 'db_ai_optimizer'); ?></th>
                                         <?php endif; ?>
                                         <?php if (isset($performance_data['slow_queries']['queries'][0]['caller'])): ?>
-                                        <th><?php esc_html_e('Caller', 'ai-database-optimizer'); ?></th>
+                                        <th><?php esc_html_e('Caller', 'db_ai_optimizer'); ?></th>
                                         <?php endif; ?>
                                     </tr>
                                 </thead>
@@ -1554,19 +1567,19 @@ private function format_performance_data($performance_data) {
                                 </tbody>
                             </table>
                         <?php else: ?>
-                            <p><?php esc_html_e('No slow queries detected in the current session.', 'ai-database-optimizer'); ?></p>
+                            <p><?php esc_html_e('No slow queries detected in the current session.', 'db_ai_optimizer'); ?></p>
                         <?php endif; ?>
                     <?php else: ?>
-                        <p><?php esc_html_e('Slow query logging is not enabled on this server or data is not accessible.', 'ai-database-optimizer'); ?></p>
-                        <p><?php esc_html_e('To enable slow query logging, you may need to modify your MySQL configuration.', 'ai-database-optimizer'); ?></p>
+                        <p><?php esc_html_e('Slow query logging is not enabled on this server or data is not accessible.', 'db_ai_optimizer'); ?></p>
+                        <p><?php esc_html_e('To enable slow query logging, you may need to modify your MySQL configuration.', 'db_ai_optimizer'); ?></p>
                     <?php endif; ?>
                     
-                    <h4><?php esc_html_e('MySQL Status', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('MySQL Status', 'db_ai_optimizer'); ?></h4>
                     <table class="">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e('Status', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Value', 'ai-database-optimizer'); ?></th>
+                                <th><?php esc_html_e('Status', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Value', 'db_ai_optimizer'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1582,14 +1595,14 @@ private function format_performance_data($performance_data) {
                 
                 <!-- Cache Information -->
                 <div id="cache-stats" class="ai-db-tab-pane">
-                    <h4><?php esc_html_e('Query Cache Information', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('Query Cache Information', 'db_ai_optimizer'); ?></h4>
                     
                     <?php if ($performance_data['query_cache']['enabled']): ?>
                         <p>
                             <?php 
                             /* translators: %s is the query cache size formatted in KB/MB/GB */
                             printf(
-                                __('Query cache is enabled with size: %s', 'ai-database-optimizer'),
+                                __('Query cache is enabled with size: %s', 'db_ai_optimizer'),
                                 size_format(intval($performance_data['query_cache']['size']))
                             ); 
                             ?>
@@ -1600,14 +1613,14 @@ private function format_performance_data($performance_data) {
                                 <?php 
                                 /* translators: %s is the cache hit ratio percentage */
                                 printf(
-                                    __('Cache hit ratio: %s%%', 'ai-database-optimizer'),
+                                    __('Cache hit ratio: %s%%', 'db_ai_optimizer'),
                                     $performance_data['query_cache']['hit_ratio']
                                 ); 
                                 ?>
                                 
                                 <?php if ($performance_data['query_cache']['hit_ratio'] < 20): ?>
                                     <span class="ai-db-warning">
-                                        <?php esc_html_e('Low hit ratio indicates the query cache may not be effective', 'ai-database-optimizer'); ?>
+                                        <?php esc_html_e('Low hit ratio indicates the query cache may not be effective', 'db_ai_optimizer'); ?>
                                     </span>
                                 <?php endif; ?>
                             </p>
@@ -1616,8 +1629,8 @@ private function format_performance_data($performance_data) {
                         <table class="">
                             <thead>
                                 <tr>
-                                    <th><?php esc_html_e('Metric', 'ai-database-optimizer'); ?></th>
-                                    <th><?php esc_html_e('Value', 'ai-database-optimizer'); ?></th>
+                                    <th><?php esc_html_e('Metric', 'db_ai_optimizer'); ?></th>
+                                    <th><?php esc_html_e('Value', 'db_ai_optimizer'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1633,25 +1646,25 @@ private function format_performance_data($performance_data) {
                         <?php if (isset($performance_data['query_cache']['usage']['query_cache_lowmem_prunes']) && 
                                 intval($performance_data['query_cache']['usage']['query_cache_lowmem_prunes']) > 100): ?>
                             <div class="ai-db-alert">
-                                <?php esc_html_e('High number of cache prunes indicates the query cache size is too small for your workload.', 'ai-database-optimizer'); ?>
+                                <?php esc_html_e('High number of cache prunes indicates the query cache size is too small for your workload.', 'db_ai_optimizer'); ?>
                             </div>
                         <?php endif; ?>
                     <?php else: ?>
-                        <p><?php esc_html_e('Query cache is disabled on this server.', 'ai-database-optimizer'); ?></p>
+                        <p><?php esc_html_e('Query cache is disabled on this server.', 'db_ai_optimizer'); ?></p>
                     <?php endif; ?>
                 </div>
                 
                 <!-- Error Logs -->
                 <?php if (!empty($performance_data['error_logs']['entries'])): ?>
                 <div id="error-logs" class="ai-db-tab-pane">
-                    <h4><?php esc_html_e('Database Error Logs', 'ai-database-optimizer'); ?></h4>
+                    <h4><?php esc_html_e('Database Error Logs', 'db_ai_optimizer'); ?></h4>
                     
                     <table class="">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e('Query', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Error', 'ai-database-optimizer'); ?></th>
-                                <th><?php esc_html_e('Caller', 'ai-database-optimizer'); ?></th>
+                                <th><?php esc_html_e('Query', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Error', 'db_ai_optimizer'); ?></th>
+                                <th><?php esc_html_e('Caller', 'db_ai_optimizer'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1685,7 +1698,7 @@ public function ajax_get_performance_data() {
     check_ajax_referer('fulgid_ai_db_optimizer_nonce', 'nonce');
     
     if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'ai-database-optimizer')]);
+        wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'db_ai_optimizer')]);
     }
     
     // Get performance data from database or generate sample data if not available
@@ -1770,17 +1783,17 @@ public function get_db_composition_data() {
     
     // Group some related tables
     $grouped_data = [
-        __('Posts', 'ai-database-optimizer') => $tables_info['posts'],
-        __('Post Meta', 'ai-database-optimizer') => $tables_info['postmeta'],
-        __('Comments', 'ai-database-optimizer') => $tables_info['comments'] + $tables_info['commentmeta'],
-        __('Users', 'ai-database-optimizer') => $tables_info['users'] + $tables_info['usermeta'],
-        __('Terms', 'ai-database-optimizer') => $tables_info['terms'] + $tables_info['termmeta'] + $tables_info['term_taxonomy'] + $tables_info['term_relationships'],
-        __('Options', 'ai-database-optimizer') => $tables_info['options'],
+        __('Posts', 'db_ai_optimizer') => $tables_info['posts'],
+        __('Post Meta', 'db_ai_optimizer') => $tables_info['postmeta'],
+        __('Comments', 'db_ai_optimizer') => $tables_info['comments'] + $tables_info['commentmeta'],
+        __('Users', 'db_ai_optimizer') => $tables_info['users'] + $tables_info['usermeta'],
+        __('Terms', 'db_ai_optimizer') => $tables_info['terms'] + $tables_info['termmeta'] + $tables_info['term_taxonomy'] + $tables_info['term_relationships'],
+        __('Options', 'db_ai_optimizer') => $tables_info['options'],
     ];
     
     // Add "Other" category if it exists
     if (isset($tables_info['other'])) {
-        $grouped_data[__('Other', 'ai-database-optimizer')] = $tables_info['other'];
+        $grouped_data[__('Other', 'db_ai_optimizer')] = $tables_info['other'];
     }
     
     // Format the data
@@ -1814,7 +1827,7 @@ public function get_db_composition_data() {
 public function enqueue_chart_data() {
     // Only add on our plugin page
     $screen = get_current_screen();
-    if ($screen->id !== 'tools_page_ai-database-optimizer') {
+    if ($screen->id !== 'tools_page_db_ai_optimizer') {
         return;
     }
     
@@ -1823,7 +1836,7 @@ public function enqueue_chart_data() {
     
     // Localize the script with the data
     wp_localize_script(
-        'ai-database-optimizer-admin', 
+        'db_ai_optimizer-admin', 
         'aiDbOptimizerCharts', 
         ['dbComposition' => $chart_data]
     );
@@ -1836,7 +1849,7 @@ public function ajax_get_composition_data() {
     check_ajax_referer('fulgid_ai_db_optimizer_nonce', 'nonce');
     
     if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'ai-database-optimizer')]);
+        wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'db_ai_optimizer')]);
     }
     
     global $wpdb;

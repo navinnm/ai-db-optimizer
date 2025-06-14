@@ -4,7 +4,7 @@ Tags: database, optimization, performance, ai, mysql
 Requires at least: 5.0
 Tested up to: 6.8
 Stable tag: 1.0.0
-Requires PHP: 7.2
+Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 AI-powered database optimization plugin that analyzes and optimizes your WordPress database for peak performance.
@@ -32,7 +32,7 @@ Better user experience
 
 Installation
 
-Upload the ai-database-optimizer folder to the /wp-content/plugins/ directory
+Upload the db_ai_optimizer folder to the /wp-content/plugins/ directory
 Activate the plugin through the 'Plugins' menu in WordPress
 Go to 'Tools > AI DB Optimizer' to configure settings and run your first analysis
 

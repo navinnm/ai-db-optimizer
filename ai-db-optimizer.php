@@ -9,12 +9,12 @@
  *
  * @wordpress-plugin
  * Plugin Name: AI Database Optimizer
- * Plugin URI:  https://fulgid.in/ai-database-optimizer
+ * Plugin URI:  https://fulgid.in/db_ai_optimizer
  * Description: AI-based WordPress database optimization plugin that analyzes and optimizes your database for better performance.
  * Version:     1.0.0
  * Author:      Fulgid
  * Author URI:  https://fulgid.in
- * Text Domain: ai-database-optimizer
+ * Text Domain: db_ai_optimizer
  * Requires at least: 5.0
  * Tested up to: 6.8
  * Requires PHP: 7.4
@@ -34,7 +34,7 @@ define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
 // Include required files - use the actual filename that exists
-require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-ai-db-optimizer.php';
+require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-db_ai_optimizer.php';
 
 // Initialize the plugin
 function fulgid_ai_db_optimizer_init() {
@@ -49,33 +49,16 @@ function fulgid_ai_db_optimizer_activate() {
     // Check WordPress and PHP version requirements
     if (version_compare(get_bloginfo('version'), '5.0', '<')) {
         deactivate_plugins(plugin_basename(__FILE__));
-        wp_die(__('AI Database Optimizer requires WordPress 5.0 or higher.', 'ai-database-optimizer'));
+        wp_die(esc_html__('AI Database Optimizer requires WordPress 5.0 or higher.', 'db_ai_optimizer'));
     }
     
     if (version_compare(PHP_VERSION, '7.4', '<')) {
         deactivate_plugins(plugin_basename(__FILE__));
-        wp_die(__('AI Database Optimizer requires PHP 7.4 or higher.', 'ai-database-optimizer'));
+        wp_die(esc_html__('AI Database Optimizer requires PHP 7.4 or higher.', 'db_ai_optimizer'));
     }
     
     // Create necessary tables and initial settings
-    global $wpdb;
-    
-    // Create optimization history table
-    $table_name = $wpdb->prefix . 'ai_db_optimization_history';
-    $charset_collate = $wpdb->get_charset_collate();
-    
-    $sql = "CREATE TABLE $table_name (
-        id mediumint(9) NOT NULL AUTO_INCREMENT,
-        optimization_time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-        optimization_type varchar(255) NOT NULL,
-        tables_affected text NOT NULL,
-        performance_impact float NOT NULL,
-        recommendations text,
-        PRIMARY KEY (id)
-    ) $charset_collate;";
-    
-    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-    dbDelta($sql);
+    fulgid_ai_db_optimizer_create_tables();
     
     // Set default options with proper sanitization
     $default_settings = [
@@ -91,6 +74,32 @@ function fulgid_ai_db_optimizer_activate() {
     
     // Set activation flag for welcome screen
     add_option('fulgid_ai_db_optimizer_activation_redirect', true);
+}
+
+/**
+ * Create plugin tables
+ * 
+ * @since 1.0.0
+ */
+function fulgid_ai_db_optimizer_create_tables() {
+    global $wpdb;
+    
+    // Create optimization history table
+    $table_name = $wpdb->prefix . 'ai_db_optimization_history';
+    $charset_collate = $wpdb->get_charset_collate();
+    
+    $sql = "CREATE TABLE {$table_name} (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        optimization_time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+        optimization_type varchar(255) NOT NULL,
+        tables_affected text NOT NULL,
+        performance_impact float NOT NULL,
+        recommendations text,
+        PRIMARY KEY (id)
+    ) {$charset_collate};";
+    
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
 }
 
 // Deactivation hook
@@ -111,7 +120,9 @@ function fulgid_ai_db_optimizer_uninstall() {
     
     // Remove optimization history table
     $table_name = $wpdb->prefix . 'ai_db_optimization_history';
-    $wpdb->query("DROP TABLE IF EXISTS $table_name");
+    
+    // Use prepared statement for table name (even though it's constructed safely)
+    $wpdb->query($wpdb->prepare("DROP TABLE IF EXISTS `%1s`", $table_name)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
     
     // Clear any remaining scheduled events
     wp_clear_scheduled_hook('fulgid_ai_db_optimizer_scheduled_optimization');
@@ -125,7 +136,7 @@ function fulgid_ai_db_optimizer_load_textdomain() {
     // Only load textdomain if languages directory exists
     if (is_dir(FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'languages/')) {
         load_plugin_textdomain(
-            'ai-database-optimizer',
+            'db_ai_optimizer',
             false,
             $languages_dir
         );
