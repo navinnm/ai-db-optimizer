@@ -133,7 +133,7 @@ public function render_admin_page() {
                             ?>
                             
                             <div class="ai-db-health-score <?php echo esc_html( $health_class); ?>">
-                                <div class="inner"><?php echo esc_html( $health_score); ?></div>
+                                <div class="inner"><?php echo esc_html( $health_score); ?>%</div>
                             </div>
                             
                             <div class="ai-db-health-details">
@@ -195,13 +195,14 @@ public function render_admin_page() {
                         </div>
                     </div>
                 
-                    <div class="ai-db-optimizer-card">
+                   
+                </div>
+                 <div class="ai-db-optimizer-card">
                         <h2><?php esc_html_e('Analysis & Optimization Results', 'ai-db-optimizer'); ?></h2>
                         <div id="ai-db-results" class="ai-db-optimizer-results">
                             <p><?php esc_html_e('Click "Analyze Database" to start.', 'ai-db-optimizer'); ?></p>
                         </div>
                     </div>
-                </div>
                 <div class="flex">
                 <div class="ai-db-optimizer-card">
                         <h2><?php esc_html_e('Optimization History', 'ai-db-optimizer'); ?></h2>
