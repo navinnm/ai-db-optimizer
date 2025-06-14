@@ -121,8 +121,11 @@ function fulgid_ai_db_optimizer_uninstall() {
     // Remove optimization history table
     $table_name = $wpdb->prefix . 'ai_db_optimization_history';
     
-    // Use prepared statement for table name (even though it's constructed safely)
-    $wpdb->query($wpdb->prepare("DROP TABLE IF EXISTS `%1s`", $table_name)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+    // Validate table name for security (only contains valid characters)
+    if (preg_match('/^[a-zA-Z0-9_]+$/', $table_name)) {
+        // Use direct query with validated table name since $wpdb->prepare() doesn't work with table names
+        $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($table_name) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    }
     
     // Clear any remaining scheduled events
     wp_clear_scheduled_hook('fulgid_ai_db_optimizer_scheduled_optimization');

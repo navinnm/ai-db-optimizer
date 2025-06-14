@@ -10,6 +10,8 @@ class Admin_UI {
      */
     private $analyzer;
     
+    private $cache_group = 'fulgid_ai_db_admin_ui';
+    private $cache_expiry = 1800; // 30 minutes
     /**
      * The optimization engine instance
      */
@@ -305,33 +307,34 @@ public function render_admin_page() {
     private function render_database_metrics() {
         global $wpdb;
         
-        // Get database size
-        $db_size = $wpdb->get_row("SELECT SUM(data_length + index_length) as size FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "'");
+        // Check cache first
+        $cache_key = 'db_metrics';
+        $cached_data = wp_cache_get($cache_key, $this->cache_group);
         
-        // Get table count
-        $tables = $wpdb->get_results("SHOW TABLES LIKE '{$wpdb->prefix}%'");
-        $table_count = count($tables);
-        
-        // Get row count (approximate)
-        $total_rows = 0;
-        foreach ($tables as $table) {
-            // If $table is an object, access the table name property directly
-            if (is_object($table)) {
-                // Common property names in WordPress database results
-                $table_name = $table->Name ?? $table->TABLE_NAME ?? $table->table_name ?? '';
-            } elseif (is_array($table)) {
-                // If it's an array, get the first element
-                $table_name = reset($table);
-            } else {
-                // If it's a string, use it directly
-                $table_name = $table;
-            }
+        if (false === $cached_data) {
+            // Get database size
+            $db_size = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                "SELECT SUM(data_length + index_length) as size FROM information_schema.TABLES WHERE table_schema = %s",
+                DB_NAME
+            ));
             
-            if (!empty($table_name)) {
-                $count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
-                $total_rows += $count;
-            }
+            // Get table count
+            $tables = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                "SHOW TABLES LIKE %s",
+                $wpdb->esc_like($wpdb->prefix) . '%'
+            ));
+            $table_count = count($tables);
+            
+            $cached_data = [
+                'db_size' => $db_size,
+                'table_count' => $table_count
+            ];
+            
+            wp_cache_set($cache_key, $cached_data, $this->cache_group, $this->cache_expiry);
         }
+        
+        $db_size = $cached_data['db_size'];
+        $table_count = $cached_data['table_count'];
         
         // Get last optimization time
         $settings = get_option('fulgid_ai_db_optimizer_settings');
@@ -340,20 +343,14 @@ public function render_admin_page() {
         ?>
         <div class="ai-db-status-metric">
             <h3><?php esc_html_e('Size', 'db_ai_optimizer'); ?></h3>
-            <div class="value"><?php echo size_format($db_size->size); ?></div>
+            <div class="value"><?php echo esc_html(size_format($db_size->size)); ?></div>
             <div class="description"><?php esc_html_e('Total database size', 'db_ai_optimizer'); ?></div>
         </div>
         
         <div class="ai-db-status-metric">
             <h3><?php esc_html_e('Tables', 'db_ai_optimizer'); ?></h3>
-            <div class="value"><?php echo $table_count; ?></div>
+            <div class="value"><?php echo esc_html($table_count); ?></div>
             <div class="description"><?php esc_html_e('WordPress tables', 'db_ai_optimizer'); ?></div>
-        </div>
-        
-        <div class="ai-db-status-metric">
-            <h3><?php esc_html_e('Rows', 'db_ai_optimizer'); ?></h3>
-            <div class="value"><?php echo number_format($total_rows); ?></div>
-            <div class="description"><?php esc_html_e('Total data rows', 'db_ai_optimizer'); ?></div>
         </div>
         
         <div class="ai-db-status-metric">
@@ -361,8 +358,8 @@ public function render_admin_page() {
             <div class="value">
                 <?php 
                 if ($last_optimization) {
-                    echo human_time_diff(strtotime($last_optimization), current_time('timestamp'));
-                    echo ' ' . __('ago', 'db_ai_optimizer');
+                    echo esc_html(human_time_diff(strtotime($last_optimization), current_time('timestamp')));
+                    echo ' ' . esc_html__('ago', 'db_ai_optimizer');
                 } else {
                     esc_html_e('Never', 'db_ai_optimizer');
                 }
@@ -371,7 +368,7 @@ public function render_admin_page() {
             <div class="description">
                 <?php 
                 if ($last_optimization) {
-                    echo date_i18n(get_option('date_format'), strtotime($last_optimization));
+                    echo esc_html(date_i18n(get_option('date_format'), strtotime($last_optimization)));
                 } else {
                     esc_html_e('No optimization yet', 'db_ai_optimizer');
                 }
@@ -500,9 +497,8 @@ private function render_ai_insights() {
     ");
     
     if (!empty($tables_with_overhead)) {
-        $insight = __('Tables with significant overhead detected', 'db_ai_optimizer');
+        $insight = esc_html(__('Tables with significant overhead detected', 'db_ai_optimizer'));
         $details = sprintf(
-            /* translators: %1$s is the table name, %2$s is the overhead size */
             __('Optimizing the %1$s table could free up %2$s of space.', 'db_ai_optimizer'),
             '<strong>' . esc_html($tables_with_overhead[0]->TABLE_NAME) . '</strong>',
             '<strong>' . size_format($tables_with_overhead[0]->DATA_FREE) . '</strong>'
@@ -623,10 +619,10 @@ private function render_ai_insights() {
     echo '<ul class="ai-db-insights-list">';
     foreach ($insights as $insight) {
         echo '<li class="ai-db-insight-item ai-db-insight-' . esc_attr($insight['type']) . '">';
-        echo '<div class="ai-db-insight-icon">' . $insight['icon'] . '</div>';
+        echo '<div class="ai-db-insight-icon">' . wp_kses_post($insight['icon']) . '</div>';
         echo '<div class="ai-db-insight-content">';
-        echo '<h3>' . $insight['title'] . '</h3>';
-        echo '<p>' . $insight['details'] . '</p>';
+        echo '<h3>' . esc_html($insight['title']) . '</h3>';
+        echo '<p>' . wp_kses_post($insight['details']) . '</p>';
         echo '</div>';
         echo '</li>';
     }
@@ -739,7 +735,9 @@ private function render_ai_insights() {
             <div class="ai-db-issue-count <?php echo $issue_count > 0 ? 'has-issues' : 'no-issues'; ?>">
                 <?php 
                 /* translators: %d is the number of issues found in the database */
-                printf(_n('%d issue found', '%d issues found', $issue_count, 'db_ai_optimizer'), $issue_count); 
+                echo esc_html(_n('%d issue found', '%d issues found', $issue_count, 'db_ai_optimizer'));
+                echo esc_html($issue_count);
+
                 ?>
             </div>
             
@@ -793,10 +791,10 @@ private function render_ai_insights() {
                                         <?php echo esc_html($table); ?>
                                     </td>
                                     <td data-title="<?php esc_html_e('Size', 'db_ai_optimizer'); ?>">
-                                        <?php echo size_format($table_analysis['data_size'] + $table_analysis['index_size']); ?>
+                                        <?php echo esc_html(size_format($table_analysis['data_size'] + $table_analysis['index_size'])); ?>
                                     </td>
                                     <td data-title="<?php esc_html_e('Overhead', 'db_ai_optimizer'); ?>">
-                                        <?php echo size_format($table_analysis['overhead']); ?>
+                                        <?php echo esc_html(size_format($table_analysis['overhead'])); ?>
                                     </td>
                                     <td data-title="<?php esc_html_e('Issues', 'db_ai_optimizer'); ?>">
                                         <?php
@@ -848,6 +846,7 @@ private function render_ai_insights() {
                 <p>
                     <?php 
                     /* translators: %s is the performance improvement percentage */
+                    
                     printf(
                         __('Database optimization completed with estimated %s%% performance improvement.', 'db_ai_optimizer'),
                         '<strong>' . number_format($results['performance_impact'], 2) . '</strong>'
@@ -923,7 +922,7 @@ private function render_ai_insights() {
         <ul class="ai-db-status-list">
             <li>
                 <span class="ai-db-status-label"><?php esc_html_e('Database Size:', 'db_ai_optimizer'); ?></span>
-                <span class="ai-db-status-value"><?php echo size_format($db_size->size); ?></span>
+                <span class="ai-db-status-value"><?php echo esc_html(size_format($db_size->size)); ?></span>
             </li>
             <li>
                 <span class="ai-db-status-label"><?php esc_html_e('Tables:', 'db_ai_optimizer'); ?></span>
@@ -1006,7 +1005,7 @@ private function render_ai_insights() {
             wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'db_ai_optimizer')]);
         }
         
-        $analysis = isset($_POST['analysis']) ? $_POST['analysis'] : null;
+        $analysis = isset($_POST['analysis']) ? json_decode(wp_unslash(sanitize_text_field($_POST['analysis'])), true) : null;
         
         if (!$analysis) {
             wp_send_json_error(['message' => __('No analysis data provided.', 'db_ai_optimizer')]);
@@ -1505,8 +1504,8 @@ private function format_performance_data($performance_data) {
                                         /* translators: %s is the query execution time in seconds */
                                         echo sprintf(
                                             __('%ss', 'db_ai_optimizer'),
-                                            round($stats['query_stats']['total_time'], 2)
-                                        ); 
+                                            esc_html(round($stats['query_stats']['total_time'], 2))
+                                        );
                                         ?>
                                     </td>
                                     <?php endif; ?>
@@ -1527,7 +1526,7 @@ private function format_performance_data($performance_data) {
                                 /* translators: %s is the slow query threshold time in seconds */
                                 printf(
                                     __('Slow query threshold: %s seconds', 'db_ai_optimizer'),
-                                    $performance_data['slow_queries']['threshold']
+                                    esc_html($performance_data['slow_queries']['threshold'])
                                 );
                             }
                             ?>
@@ -1603,8 +1602,8 @@ private function format_performance_data($performance_data) {
                             /* translators: %s is the query cache size formatted in KB/MB/GB */
                             printf(
                                 __('Query cache is enabled with size: %s', 'db_ai_optimizer'),
-                                size_format(intval($performance_data['query_cache']['size']))
-                            ); 
+                                esc_html(size_format(intval($performance_data['query_cache']['size'])))
+                            );
                             ?>
                         </p>
                         
@@ -1614,7 +1613,7 @@ private function format_performance_data($performance_data) {
                                 /* translators: %s is the cache hit ratio percentage */
                                 printf(
                                     __('Cache hit ratio: %s%%', 'db_ai_optimizer'),
-                                    $performance_data['query_cache']['hit_ratio']
+                                    esc_html($performance_data['query_cache']['hit_ratio'])
                                 ); 
                                 ?>
                                 
@@ -1712,14 +1711,14 @@ public function ajax_get_performance_data() {
         
         // Generate data for the last 7 days
         for ($i = 6; $i >= 0; $i--) {
-            $date = date('M d', strtotime("-$i days"));
+            $date = gmdate('M d', strtotime("-$i days"));
             $dates[] = $date;
             
             // Random query time between 50-200ms
-            $query_times[] = rand(50, 200);
+            $query_times[] = wp_rand(50, 200);
             
             // Random DB size between 10-100MB
-            $db_sizes[] = rand(10, 100);
+            $db_sizes[] = wp_rand(10, 100);
         }
         
         $performance_data = [
@@ -1805,8 +1804,9 @@ public function get_db_composition_data() {
     
     // Add colors (ensure we have enough)
     $bg_colors = array_slice($colors, 0, count($data));
+    
     while (count($bg_colors) < count($data)) {
-        $bg_colors[] = '#' . substr(md5(mt_rand()), 0, 6);
+        $bg_colors[] = '#' . substr(md5(wp_rand()), 0, 6);
     }
     
     return [
