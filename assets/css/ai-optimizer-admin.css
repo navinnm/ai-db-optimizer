@@ -1246,8 +1246,8 @@ button#ai-db-analyze {
 }
 
 .ai-db-health-score {
-    width: 80px;
-    height: 80px;
+    width: 65px;
+    height: 65px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1372,14 +1372,19 @@ button#ai-db-analyze {
 }
 
 #ai-db-collect-performance {
-    background: #0073aa;
-    border-color: #005a87;
+    background: #4527a0;
+    border-color: #4527a0;
     color: #fff;
+    display: flex;
+}
+
+#ai-db-optimize {
+  display: flex;
 }
 
 #ai-db-collect-performance:hover:not(:disabled) {
-    background: #005a87;
-    border-color: #004b72;
+    background: #4527a0;
+    border-color: #4527a0;
 }
 
 .ai-database-optimizer-actions button:disabled {

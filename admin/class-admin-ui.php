@@ -106,8 +106,8 @@ public function render_admin_page() {
         <div class="ai-database-optimizer-header">
             <div class="ai-database-optimizer-logo">
                 <svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M274.5 279C274.5 292.531 263.531 303.5 250 303.5C236.469 303.5 225.5 292.531 225.5 279M274.5 279C274.5 265.469 263.531 254.5 250 254.5M274.5 279H300.5M225.5 279C225.5 265.469 236.469 254.5 250 254.5M225.5 279H195.5M250 254.5V205.5M250 205.5C311.25 205.5 360.25 189.085 360.25 168.75V95.25M250 205.5C188.75 205.5 139.75 189.085 139.75 168.75V95.25M360.25 95.25C360.25 115.546 310.89 132 250 132C189.111 132 139.75 115.546 139.75 95.25M360.25 95.25C360.25 74.9536 310.89 58.5 250 58.5C189.111 58.5 139.75 74.9536 139.75 95.25" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M335 402.25L329.121 316.993C328.197 303.608 327.736 296.915 324.835 291.842C322.281 287.375 318.435 283.786 313.803 281.545C308.542 279 301.834 279 288.417 279H211.583C198.166 279 191.458 279 186.197 281.545C181.565 283.786 177.72 287.375 175.165 291.842C172.264 296.915 171.803 303.608 170.88 316.993L165 402.25M335 402.25C335 418.68 321.68 432 305.25 432H194.75C178.32 432 165 418.68 165 402.25M335 402.25C335 385.82 321.68 372.5 305.25 372.5H194.75C178.32 372.5 165 385.82 165 402.25M199 402.25H199.085M250 402.25H301" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M274.5 279C274.5 292.531 263.531 303.5 250 303.5C236.469 303.5 225.5 292.531 225.5 279M274.5 279C274.5 265.469 263.531 254.5 250 254.5M274.5 279H300.5M225.5 279C225.5 265.469 236.469 254.5 250 254.5M225.5 279H195.5M250 254.5V205.5M250 205.5C311.25 205.5 360.25 189.085 360.25 168.75V95.25M250 205.5C188.75 205.5 139.75 189.085 139.75 168.75V95.25M360.25 95.25C360.25 115.546 310.89 132 250 132C189.111 132 139.75 115.546 139.75 95.25M360.25 95.25C360.25 74.9536 310.89 58.5 250 58.5C189.111 58.5 139.75 74.9536 139.75 95.25" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M335 402.25L329.121 316.993C328.197 303.608 327.736 296.915 324.835 291.842C322.281 287.375 318.435 283.786 313.803 281.545C308.542 279 301.834 279 288.417 279H211.583C198.166 279 191.458 279 186.197 281.545C181.565 283.786 177.72 287.375 175.165 291.842C172.264 296.915 171.803 303.608 170.88 316.993L165 402.25M335 402.25C335 418.68 321.68 432 305.25 432H194.75C178.32 432 165 418.68 165 402.25M335 402.25C335 385.82 321.68 372.5 305.25 372.5H194.75C178.32 372.5 165 385.82 165 402.25M199 402.25H199.085M250 402.25H301" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </div>
             
@@ -179,18 +179,15 @@ public function render_admin_page() {
                             </svg>
                             <?php esc_html_e('Analyze Database', 'ai-database-optimizer'); ?>
                         </button>
-                        <button id="ai-db-optimize" class="button" disabled>
+                        <!-- <button id="ai-db-optimize" class="button" disabled>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                                 <path d="M19.89 10.105a8.696 8.696 0 0 0-.789-1.456l-1.658 1.119a6.606 6.606 0 0 1 .987 2.345 6.659 6.659 0 0 1 0 2.648 6.495 6.495 0 0 1-.384 1.231 6.404 6.404 0 0 1-.603 1.112 6.654 6.654 0 0 1-1.776 1.775 6.606 6.606 0 0 1-2.343.987 6.734 6.734 0 0 1-2.646 0 6.55 6.55 0 0 1-3.317-1.788 6.605 6.605 0 0 1-1.408-2.088 6.613 6.613 0 0 1-.382-1.23 6.627 6.627 0 0 1 .382-3.877A6.551 6.551 0 0 1 7.36 8.797 6.628 6.628 0 0 1 9.446 7.39c.395-.167.81-.296 1.23-.382.107-.022.216-.032.324-.049V10l5-4-5-4v2.938a8.805 8.805 0 0 0-.725.111 8.512 8.512 0 0 0-3.063 1.29A8.566 8.566 0 0 0 4.11 16.77a8.535 8.535 0 0 0 1.835 2.724 8.614 8.614 0 0 0 2.721 1.833 8.55 8.55 0 0 0 5.061.499 8.576 8.576 0 0 0 6.162-5.056c.22-.52.389-1.061.5-1.608a8.643 8.643 0 0 0 0-3.45 8.684 8.684 0 0 0-.499-1.607z"/>
                             </svg>
-                            <?php esc_html_e('Optimize Now', 'ai-database-optimizer'); ?>
-                        </button>
+                            <?php //esc_html_e('Optimize Now', 'ai-database-optimizer'); ?>
+                        </button> -->
                         <button id="ai-db-collect-performance" class="button">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                                <path d="M8 12h8" stroke="currentColor" stroke-width="2"/>
-                                <path d="M12 8v8" stroke="currentColor" stroke-width="2"/>
+                            <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                             <path d="M22 12H18L15 21L9 3L6 12H2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                             <?php esc_html_e('Collect Performance Data', 'ai-database-optimizer'); ?>
                         </button>
@@ -531,7 +528,40 @@ public function render_admin_page() {
      */
     private function render_ai_insights() {
         global $wpdb;
-        
+        $allowed_svg_tags = array(
+            'svg'      => array(
+                'xmlns'       => true,
+                'width'       => true,
+                'height'      => true,
+                'viewbox'     => true,
+                'fill'        => true,
+                'stroke'      => true,
+                'stroke-width' => true,
+                'stroke-linecap' => true,
+                'stroke-linejoin' => true,
+                'aria-hidden' => true, // Common for accessibility
+                'focusable'   => true, // Common for accessibility
+                'role'        => true, // Common for accessibility
+            ),
+            'path'     => array(
+                'd' => true,
+            ),
+            'line'     => array(
+                'x1' => true,
+                'y1' => true,
+                'x2' => true,
+                'y2' => true,
+            ),
+            'polyline' => array(
+                'points' => true,
+            ),
+            'circle'   => array(
+                'cx' => true,
+                'cy' => true,
+                'r'  => true,
+            ),
+            // Add other SVG elements like 'rect', 'polygon', etc., if you use them
+        );
         // Get insights based on database status
         $insights = [];
         
@@ -540,15 +570,18 @@ public function render_admin_page() {
         $tables_with_overhead = wp_cache_get($cache_key, $this->cache_group);
         
         if (false === $tables_with_overhead) {
-            $tables_with_overhead = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-                "SELECT TABLE_NAME, DATA_FREE
-                FROM information_schema.TABLES 
-                WHERE TABLE_SCHEMA = %s 
-                AND TABLE_NAME LIKE %s
-                AND DATA_FREE > 0",
-                DB_NAME,
-                $wpdb->esc_like($wpdb->prefix) . '%'
-            ));
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $tables_with_overhead = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT TABLE_NAME, DATA_FREE
+                    FROM information_schema.TABLES
+                    WHERE TABLE_SCHEMA = %s
+                    AND TABLE_NAME LIKE %s
+                    AND DATA_FREE > 0",
+                    DB_NAME,
+                    $wpdb->esc_like($wpdb->prefix) . '%'
+                )
+            );
             wp_cache_set($cache_key, $tables_with_overhead, $this->cache_group, $this->cache_expiry);
         }
         
@@ -561,12 +594,13 @@ public function render_admin_page() {
                 '<strong>' . size_format($tables_with_overhead[0]->DATA_FREE) . '</strong>'
             ));
             $insights[] = [
-                'title' => $insight,
+                'title'   => $insight,
                 'details' => $details,
-                'type' => 'warning',
-                'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+                'type'    => 'warning',
+                'icon'    => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
             ];
         }
+
         
         // Check for missing important indexes
         $missing_index_tables = [];
@@ -709,10 +743,13 @@ public function render_admin_page() {
         echo '<ul class="ai-db-insights-list">';
         foreach ($insights as $insight) {
             echo '<li class="ai-db-insight-item ai-db-insight-' . esc_attr($insight['type']) . '">';
-            echo '<div class="ai-db-insight-icon">' . wp_kses_post($insight['icon']) . '</div>';
+            // Apply the filter for this specific output of the icon
+            add_filter( 'wp_kses_allowed_html', array( $this, 'my_plugin_allow_svg_tags' ), 10, 2 );
+            echo '<div class="ai-db-insight-icon">' . wp_kses_post( $insight['icon'] ) . '</div>';
+            remove_filter( 'wp_kses_allowed_html', array( $this, 'my_plugin_allow_svg_tags' ), 10 ); // Remove filter immediately
             echo '<div class="ai-db-insight-content">';
-            echo '<h3>' . esc_html($insight['title']) . '</h3>';
-            echo '<p>' . wp_kses_post($insight['details']) . '</p>';
+            echo '<h3>' . esc_html( $insight['title'] ) . '</h3>';
+            echo '<p>' . wp_kses_post( $insight['details'] ) . '</p>';
             echo '</div>';
             echo '</li>';
         }
@@ -729,7 +766,7 @@ public function render_admin_page() {
             
             .ai-db-insight-item {
                 display: flex;
-                margin-bottom: 16px;
+                margin-bottom: 10px;
                 padding: 16px;
                 border-radius: 6px;
                 transition: transform 0.2s, box-shadow 0.2s;
@@ -757,7 +794,7 @@ public function render_admin_page() {
             
             .ai-db-insight-icon {
                 flex: 0 0 40px;
-                margin-right: 16px;
+                margin-right: 0px;
                 display: flex;
                 align-items: flex-start;
             }
@@ -798,6 +835,43 @@ public function render_admin_page() {
     }
 
 
+    public function my_plugin_allow_svg_tags( $tags, $context ) 
+    {
+        if ( 'post' === $context ) { // Or a more specific context if you define one for your plugin
+            $tags['svg'] = array(
+                'xmlns'       => true,
+                'width'       => true,
+                'height'      => true,
+                'viewbox'     => true,
+                'fill'        => true,
+                'stroke'      => true,
+                'stroke-width' => true,
+                'stroke-linecap' => true,
+                'stroke-linejoin' => true,
+                'aria-hidden' => true,
+                'focusable'   => true,
+                'role'        => true,
+            );
+            $tags['path'] = array(
+                'd' => true,
+            );
+            $tags['line'] = array(
+                'x1' => true,
+                'y1' => true,
+                'x2' => true,
+                'y2' => true,
+            );
+            $tags['polyline'] = array(
+                'points' => true,
+            );
+            $tags['circle'] = array(
+                'cx' => true,
+                'cy' => true,
+                'r'  => true,
+            );
+        }
+        return $tags;
+    }
 
     /**
      * Format analysis results for display
@@ -823,11 +897,9 @@ public function render_admin_page() {
             ?>
             
             <div class="ai-db-issue-count <?php echo $issue_count > 0 ? 'has-issues' : 'no-issues'; ?>">
-                <?php 
+                <?php
                 /* translators: %d is the number of issues found in the database */
-                echo esc_html(_n('%d issue found', '%d issues found', $issue_count, 'ai-database-optimizer'));
-                echo esc_html($issue_count);
-
+                echo esc_html(sprintf(_n('%d issue found', '%d issues found', $issue_count, 'ai-database-optimizer'), $issue_count));
                 ?>
             </div>
             
