@@ -95,11 +95,9 @@ public function register_assets($hook) {
         ]
     );
 }
-    /**
-     * Render the admin page
-     */
-    /**
- * Render the admin page
+
+/**
+ * Render the admin page - FIXED VERSION
  */
 public function render_admin_page() {
     $settings = get_option('fulgid_ai_db_optimizer_settings');
@@ -111,110 +109,122 @@ public function render_admin_page() {
                 <path d="M274.5 279C274.5 292.531 263.531 303.5 250 303.5C236.469 303.5 225.5 292.531 225.5 279M274.5 279C274.5 265.469 263.531 254.5 250 254.5M274.5 279H300.5M225.5 279C225.5 265.469 236.469 254.5 250 254.5M225.5 279H195.5M250 254.5V205.5M250 205.5C311.25 205.5 360.25 189.085 360.25 168.75V95.25M250 205.5C188.75 205.5 139.75 189.085 139.75 168.75V95.25M360.25 95.25C360.25 115.546 310.89 132 250 132C189.111 132 139.75 115.546 139.75 95.25M360.25 95.25C360.25 74.9536 310.89 58.5 250 58.5C189.111 58.5 139.75 74.9536 139.75 95.25" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M335 402.25L329.121 316.993C328.197 303.608 327.736 296.915 324.835 291.842C322.281 287.375 318.435 283.786 313.803 281.545C308.542 279 301.834 279 288.417 279H211.583C198.166 279 191.458 279 186.197 281.545C181.565 283.786 177.72 287.375 175.165 291.842C172.264 296.915 171.803 303.608 170.88 316.993L165 402.25M335 402.25C335 418.68 321.68 432 305.25 432H194.75C178.32 432 165 418.68 165 402.25M335 402.25C335 385.82 321.68 372.5 305.25 372.5H194.75C178.32 372.5 165 385.82 165 402.25M199 402.25H199.085M250 402.25H301" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-
             </div>
             
             <?php echo '<h1>' . esc_html__('AI Database Optimizer', 'ai-database-optimizer') . '</h1>'; ?>
         </div>
         
         <div class="ai-database-optimizer-main">
+            <!-- LEFT SIDE: Dashboard Content -->
             <div class="ai-database-optimizer-dashboard">
-                <div class="flex" style="display: flex; flex-wrap: wrap; gap: 20px; width: 100%;">
-                    <div class="ai-database-optimizer-card">
-                        <h2><?php esc_html_e('Database Health Dashboard', 'ai-database-optimizer'); ?></h2>
-                        
-                        <div class="ai-db-health-indicator">
-                            <?php 
-                            $health_score = $this->calculate_db_health_score();
-                            $health_class = 'high';
-                            
-                            if ($health_score < 70) {
-                                $health_class = 'medium';
-                            } elseif ($health_score < 50) {
-                                $health_class = 'low';
-                            }
-                            ?>
-                            
-                            <div class="ai-db-health-score <?php echo esc_html( $health_class); ?>">
-                                <div class="inner"><?php echo esc_html( $health_score); ?>%</div>
-                            </div>
-                            
-                            <div class="ai-db-health-details">
-                                <h3>
-                                    <?php 
-                                    if ($health_score >= 80) {
-                                        esc_html_e('Excellent Health', 'ai-database-optimizer');
-                                    } elseif ($health_score >= 60) {
-                                        esc_html_e('Good Health', 'ai-database-optimizer');
-                                    } elseif ($health_score >= 40) {
-                                        esc_html_e('Fair Health', 'ai-database-optimizer');
-                                    } else {
-                                        esc_html_e('Poor Health', 'ai-database-optimizer');
-                                    }
-                                    ?>
-                                </h3>
-                                <p>
-                                    <?php 
-                                    if ($health_score >= 80) {
-                                        esc_html_e('Your database is performing well with optimal structure.', 'ai-database-optimizer');
-                                    } elseif ($health_score >= 60) {
-                                        esc_html_e('Your database is performing adequately but could benefit from some optimizations.', 'ai-database-optimizer');
-                                    } elseif ($health_score >= 40) {
-                                        esc_html_e('Your database needs attention to improve performance.', 'ai-database-optimizer');
-                                    } else {
-                                        esc_html_e('Your database requires immediate optimization to improve performance.', 'ai-database-optimizer');
-                                    }
-                                    ?>
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div class="ai-db-status-overview">
-                            <?php $this->render_database_metrics(); ?>
-                        </div>
-                        
-                        
-                        
-                        <div class="ai-database-optimizer-actions">
-                            <button id="ai-db-analyze" class="button button-primary">
-                            <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M20 20V13M12 20V10M4 20L4 16M13.4067 5.0275L18.5751 6.96567M10.7988 5.40092L5.20023 9.59983M21.0607 6.43934C21.6464 7.02513 21.6464 7.97487 21.0607 8.56066C20.4749 9.14645 19.5251 9.14645 18.9393 8.56066C18.3536 7.97487 18.3536 7.02513 18.9393 6.43934C19.5251 5.85355 20.4749 5.85355 21.0607 6.43934ZM5.06066 9.43934C5.64645 10.0251 5.64645 10.9749 5.06066 11.5607C4.47487 12.1464 3.52513 12.1464 2.93934 11.5607C2.35355 10.9749 2.35355 10.0251 2.93934 9.43934C3.52513 8.85355 4.47487 8.85355 5.06066 9.43934ZM13.0607 3.43934C13.6464 4.02513 13.6464 4.97487 13.0607 5.56066C12.4749 6.14645 11.5251 6.14645 10.9393 5.56066C10.3536 4.97487 10.3536 4.02513 10.9393 3.43934C11.5251 2.85355 12.4749 2.85355 13.0607 3.43934Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <?php esc_html_e('Analyze Database', 'ai-database-optimizer'); ?>
-                            </button>
-                            <button id="ai-db-optimize" class="button" disabled>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                                    <path d="M19.89 10.105a8.696 8.696 0 0 0-.789-1.456l-1.658 1.119a6.606 6.606 0 0 1 .987 2.345 6.659 6.659 0 0 1 0 2.648 6.495 6.495 0 0 1-.384 1.231 6.404 6.404 0 0 1-.603 1.112 6.654 6.654 0 0 1-1.776 1.775 6.606 6.606 0 0 1-2.343.987 6.734 6.734 0 0 1-2.646 0 6.55 6.55 0 0 1-3.317-1.788 6.605 6.605 0 0 1-1.408-2.088 6.613 6.613 0 0 1-.382-1.23 6.627 6.627 0 0 1 .382-3.877A6.551 6.551 0 0 1 7.36 8.797 6.628 6.628 0 0 1 9.446 7.39c.395-.167.81-.296 1.23-.382.107-.022.216-.032.324-.049V10l5-4-5-4v2.938a8.805 8.805 0 0 0-.725.111 8.512 8.512 0 0 0-3.063 1.29A8.566 8.566 0 0 0 4.11 16.77a8.535 8.535 0 0 0 1.835 2.724 8.614 8.614 0 0 0 2.721 1.833 8.55 8.55 0 0 0 5.061.499 8.576 8.576 0 0 0 6.162-5.056c.22-.52.389-1.061.5-1.608a8.643 8.643 0 0 0 0-3.45 8.684 8.684 0 0 0-.499-1.607z"/>
-                                </svg>
-                                <?php esc_html_e('Optimize Now', 'ai-database-optimizer'); ?>
-                            </button>
-                        </div>
-
-                         <div class="ai-database-optimizer-card ai-db-performance-card">
-                            <h2><?php esc_html_e('Performance Monitoring', 'ai-database-optimizer'); ?></h2>
-                            <div class="ai-db-performance-chart-container">
-                                <canvas id="db-performance-chart"></canvas>
-                            </div>
-                        </div>
-                    </div>
                 
-                   
-                </div>
-                 <div class="ai-database-optimizer-card">
-                        <h2><?php esc_html_e('Analysis & Optimization Results', 'ai-database-optimizer'); ?></h2>
-                        <div id="ai-db-results" class="ai-database-optimizer-results">
-                            <p><?php esc_html_e('Click "Analyze Database" to start.', 'ai-database-optimizer'); ?></p>
+                <!-- Database Health Dashboard Card -->
+                <div class="ai-database-optimizer-card">
+                    <h2><?php esc_html_e('Database Health Dashboard', 'ai-database-optimizer'); ?></h2>
+                    
+                    <div class="ai-db-health-indicator">
+                        <?php 
+                        $health_score = $this->calculate_db_health_score();
+                        $health_class = 'high';
+                        
+                        if ($health_score < 70) {
+                            $health_class = 'medium';
+                        } elseif ($health_score < 50) {
+                            $health_class = 'low';
+                        }
+                        ?>
+                        
+                        <div class="ai-db-health-score <?php echo esc_attr($health_class); ?>">
+                            <div class="inner"><?php echo esc_html($health_score); ?>%</div>
+                        </div>
+                        
+                        <div class="ai-db-health-details">
+                            <h3>
+                                <?php 
+                                if ($health_score >= 80) {
+                                    esc_html_e('Excellent Health', 'ai-database-optimizer');
+                                } elseif ($health_score >= 60) {
+                                    esc_html_e('Good Health', 'ai-database-optimizer');
+                                } elseif ($health_score >= 40) {
+                                    esc_html_e('Fair Health', 'ai-database-optimizer');
+                                } else {
+                                    esc_html_e('Poor Health', 'ai-database-optimizer');
+                                }
+                                ?>
+                            </h3>
+                            <p>
+                                <?php 
+                                if ($health_score >= 80) {
+                                    esc_html_e('Your database is performing well with optimal structure.', 'ai-database-optimizer');
+                                } elseif ($health_score >= 60) {
+                                    esc_html_e('Your database is performing adequately but could benefit from some optimizations.', 'ai-database-optimizer');
+                                } elseif ($health_score >= 40) {
+                                    esc_html_e('Your database needs attention to improve performance.', 'ai-database-optimizer');
+                                } else {
+                                    esc_html_e('Your database requires immediate optimization to improve performance.', 'ai-database-optimizer');
+                                }
+                                ?>
+                            </p>
                         </div>
                     </div>
-                <div class="flex">
+                    
+                    <div class="ai-db-status-overview">
+                        <?php $this->render_database_metrics(); ?>
+                    </div>
+                    
+                    <div class="ai-database-optimizer-actions">
+                        <button id="ai-db-analyze" class="button button-primary">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M20 20V13M12 20V10M4 20L4 16M13.4067 5.0275L18.5751 6.96567M10.7988 5.40092L5.20023 9.59983M21.0607 6.43934C21.6464 7.02513 21.6464 7.97487 21.0607 8.56066C20.4749 9.14645 19.5251 9.14645 18.9393 8.56066C18.3536 7.97487 18.3536 7.02513 18.9393 6.43934C19.5251 5.85355 20.4749 5.85355 21.0607 6.43934ZM5.06066 9.43934C5.64645 10.0251 5.64645 10.9749 5.06066 11.5607C4.47487 12.1464 3.52513 12.1464 2.93934 11.5607C2.35355 10.9749 2.35355 10.0251 2.93934 9.43934C3.52513 8.85355 4.47487 8.85355 5.06066 9.43934ZM13.0607 3.43934C13.6464 4.02513 13.6464 4.97487 13.0607 5.56066C12.4749 6.14645 11.5251 6.14645 10.9393 5.56066C10.3536 4.97487 10.3536 4.02513 10.9393 3.43934C11.5251 2.85355 12.4749 2.85355 13.0607 3.43934Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <?php esc_html_e('Analyze Database', 'ai-database-optimizer'); ?>
+                        </button>
+                        <button id="ai-db-optimize" class="button" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                <path d="M19.89 10.105a8.696 8.696 0 0 0-.789-1.456l-1.658 1.119a6.606 6.606 0 0 1 .987 2.345 6.659 6.659 0 0 1 0 2.648 6.495 6.495 0 0 1-.384 1.231 6.404 6.404 0 0 1-.603 1.112 6.654 6.654 0 0 1-1.776 1.775 6.606 6.606 0 0 1-2.343.987 6.734 6.734 0 0 1-2.646 0 6.55 6.55 0 0 1-3.317-1.788 6.605 6.605 0 0 1-1.408-2.088 6.613 6.613 0 0 1-.382-1.23 6.627 6.627 0 0 1 .382-3.877A6.551 6.551 0 0 1 7.36 8.797 6.628 6.628 0 0 1 9.446 7.39c.395-.167.81-.296 1.23-.382.107-.022.216-.032.324-.049V10l5-4-5-4v2.938a8.805 8.805 0 0 0-.725.111 8.512 8.512 0 0 0-3.063 1.29A8.566 8.566 0 0 0 4.11 16.77a8.535 8.535 0 0 0 1.835 2.724 8.614 8.614 0 0 0 2.721 1.833 8.55 8.55 0 0 0 5.061.499 8.576 8.576 0 0 0 6.162-5.056c.22-.52.389-1.061.5-1.608a8.643 8.643 0 0 0 0-3.45 8.684 8.684 0 0 0-.499-1.607z"/>
+                            </svg>
+                            <?php esc_html_e('Optimize Now', 'ai-database-optimizer'); ?>
+                        </button>
+                        <button id="ai-db-collect-performance" class="button">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                <path d="M8 12h8" stroke="currentColor" stroke-width="2"/>
+                                <path d="M12 8v8" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            <?php esc_html_e('Collect Performance Data', 'ai-database-optimizer'); ?>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Performance Monitoring Card -->
+                <div class="ai-database-optimizer-card ai-db-performance-card">
+                    <h2><?php esc_html_e('Performance Monitoring', 'ai-database-optimizer'); ?></h2>
+                    <div class="ai-db-performance-chart-container">
+                        <canvas id="db-performance-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Analysis & Optimization Results Card -->
                 <div class="ai-database-optimizer-card">
-                        <h2><?php esc_html_e('Optimization History', 'ai-database-optimizer'); ?></h2>
-                        <?php $this->render_optimization_history(); ?>
+                    <h2><?php esc_html_e('Analysis & Optimization Results', 'ai-database-optimizer'); ?></h2>
+                    <div id="ai-db-results" class="ai-database-optimizer-results">
+                        <p><?php esc_html_e('Click "Analyze Database" to start.', 'ai-database-optimizer'); ?></p>
+                    </div>
                 </div>
+
+                <!-- Optimization History Card -->
+                <div class="ai-database-optimizer-card">
+                    <h2><?php esc_html_e('Optimization History', 'ai-database-optimizer'); ?></h2>
+                    <?php $this->render_optimization_history(); ?>
                 </div>
+
             </div>
             
+            <!-- RIGHT SIDE: Sidebar -->
             <div class="ai-database-optimizer-sidebar">
+                
+                <!-- AI Insights Card -->
                 <div class="ai-database-optimizer-card">
                     <h2><?php esc_html_e('AI Insights', 'ai-database-optimizer'); ?></h2>
                     <div id="ai-db-insights">
@@ -222,6 +232,7 @@ public function render_admin_page() {
                     </div>
                 </div>
                 
+                <!-- Settings Card -->
                 <div class="ai-database-optimizer-card">
                     <h2><?php esc_html_e('Settings', 'ai-database-optimizer'); ?></h2>
                     <form method="post" action="options.php" class="ai-db-settings-form">
@@ -284,18 +295,14 @@ public function render_admin_page() {
                     </form>
                 </div>
 
-                <div class="flex">
-                    <div class="ai-database-optimizer-card">
-                        <h2><?php esc_html_e('Database Composition', 'ai-database-optimizer'); ?></h2>
-                        <div class="ai-db-chart-container">
-                            <canvas id="db-composition-chart" width="400" height="300"></canvas>
-                        </div>
+                <!-- Database Composition Chart Card -->
+                <div class="ai-database-optimizer-card">
+                    <h2><?php esc_html_e('Database Composition', 'ai-database-optimizer'); ?></h2>
+                    <div class="ai-db-chart-container">
+                        <canvas id="db-composition-chart" width="400" height="300"></canvas>
                     </div>
-
-                
                 </div>
-                
-                
+
             </div>
         </div>
     </div>
@@ -319,7 +326,7 @@ public function render_admin_page() {
                 DB_NAME
             ));
             
-            // Get table count
+            // Get table count  
             $tables = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                 "SHOW TABLES LIKE %s",
                 $wpdb->esc_like($wpdb->prefix) . '%'
@@ -459,14 +466,13 @@ public function render_admin_page() {
         $transient_count = wp_cache_get($transient_cache_key, $this->cache_group);
 
         if (false === $transient_count) {
-            $transient_count = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-                SELECT COUNT(*) 
-                FROM {$wpdb->options} 
-                WHERE option_name LIKE '%_transient_%'
-            ");
-            wp_cache_set($transient_cache_key, $transient_count, $this->cache_group, $this->cache_expiry);
-        }
-        
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$transient_count = $wpdb->get_var(
+				"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '\_transient\_%' OR option_name LIKE '\_site\_transient\_%'"
+			);
+			wp_cache_set($transient_cache_key, $transient_count, $this->cache_group, $this->cache_expiry);
+		}
+
         if ($transient_count > 1000) {
             $score -= 15;
         } elseif ($transient_count > 500) {
@@ -480,13 +486,12 @@ public function render_admin_page() {
         $revision_count = wp_cache_get($revision_cache_key, $this->cache_group);
 
         if (false === $revision_count) {
-            $revision_count = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-                SELECT COUNT(*) 
-                FROM {$wpdb->posts} 
-                WHERE post_type = 'revision'
-            ");
-            wp_cache_set($revision_count, $revision_count, $this->cache_group, 300); // Cache for 5 minutes
-        }
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$revision_count = $wpdb->get_var(
+					"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'"
+				);
+				wp_cache_set($revision_count, $revision_count, $this->cache_group, 300); // Cache for 5 minutes
+			}
         
         if ($revision_count > 1000) {
             $score -= 15;
@@ -500,14 +505,13 @@ public function render_admin_page() {
         $autoload_cache_key = 'autoload_size';
         $autoload_size = wp_cache_get($autoload_cache_key, $this->cache_group);
 
-        if (false === $autoload_size) {
-            $autoload_size = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-                SELECT SUM(LENGTH(option_value)) 
-                FROM {$wpdb->options} 
-                WHERE autoload = 'yes'
-            ");
-            wp_cache_set($autoload_size, $autoload_size, $this->cache_group, $this->cache_expiry);
-        }
+		if (false === $autoload_size) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$autoload_size = $wpdb->get_var(
+				"SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload = 'yes'"
+			);
+			wp_cache_set($autoload_size, $autoload_size, $this->cache_group, $this->cache_expiry);
+		}
         
         if ($autoload_size > 3 * 1024 * 1024) { // More than 3MB
             $score -= 20;
@@ -612,13 +616,12 @@ public function render_admin_page() {
         $transient_count = wp_cache_get($transient_cache_key, $this->cache_group);
 
         if (false === $transient_count) {
-            $transient_count = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-                SELECT COUNT(*) 
-                FROM {$wpdb->options} 
-                WHERE option_name LIKE '%_transient_%'
-            ");
-            wp_cache_set($transient_cache_key, $transient_count, $this->cache_group, $this->cache_expiry);
-        }
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$transient_count = $wpdb->get_var(
+					"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '\_transient\_%' OR option_name LIKE '\_site\_transient\_%'"
+				);
+				wp_cache_set($transient_cache_key, $transient_count, $this->cache_group, $this->cache_expiry);
+			}
 
         
         if ($transient_count > 200) {
@@ -641,13 +644,12 @@ public function render_admin_page() {
         $revision_count = wp_cache_get($revision_cache_key, $this->cache_group);
 
         if (false === $revision_count) {
-            $revision_count = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-                SELECT COUNT(*) 
-                FROM {$wpdb->posts} 
-                WHERE post_type = 'revision'
-            ");
-            wp_cache_set($revision_cache_key, $revision_count, $this->cache_group, $this->cache_expiry);
-        }
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$revision_count = $wpdb->get_var(
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'"
+			);
+			wp_cache_set($revision_cache_key, $revision_count, $this->cache_group, $this->cache_expiry);
+		}
 
         
         if ($revision_count > 200) {
@@ -670,13 +672,12 @@ public function render_admin_page() {
         $autoload_size = wp_cache_get($autoload_cache_key, $this->cache_group);
 
         if (false === $autoload_size) {
-            $autoload_size = $wpdb->get_var(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-                SELECT SUM(LENGTH(option_value)) 
-                FROM {$wpdb->options} 
-                WHERE autoload = 'yes'
-            ");
-            wp_cache_set($autoload_cache_key, $autoload_size, $this->cache_group, $this->cache_expiry);
-        }
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$autoload_size = $wpdb->get_var(
+				"SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload = 'yes'"
+			);
+			wp_cache_set($autoload_cache_key, $autoload_size, $this->cache_group, $this->cache_expiry);
+		}
 
         
         if ($autoload_size > 1 * 1024 * 1024) { // More than 1MB
@@ -1000,7 +1001,7 @@ public function render_admin_page() {
         $db_size = wp_cache_get($cache_key, $this->cache_group);
         
         if (false === $db_size) {
-            $db_size = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            $db_size = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                 "SELECT SUM(data_length + index_length) as size FROM information_schema.TABLES WHERE table_schema = %s",
                 DB_NAME
             ));
@@ -1052,7 +1053,7 @@ public function render_admin_page() {
         $history = wp_cache_get($cache_key, $this->cache_group);
         
         if (false === $history) {
-            $history = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            $history = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                 "SELECT * FROM `" . esc_sql($table_name) . "` ORDER BY optimization_time DESC LIMIT %d",
                 5
             ));
@@ -1275,14 +1276,12 @@ private function collect_slow_queries() {
             $slow_queries = wp_cache_get($slow_queries_cache_key, $this->cache_group);
             
             if (false === $slow_queries) {
-                $slow_queries = $wpdb->get_results(" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-                    SELECT * FROM information_schema.PROCESSLIST 
-                    WHERE TIME > 2 
-                    ORDER BY TIME DESC 
-                    LIMIT 10
-                ");
-                wp_cache_set($slow_queries_cache_key, $slow_queries, $this->cache_group, 60); // Cache for 1 minute
-            }
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$slow_queries = $wpdb->get_results(
+					"SELECT * FROM information_schema.PROCESSLIST WHERE TIME > 2 ORDER BY TIME DESC LIMIT 10"
+				);
+				wp_cache_set($slow_queries_cache_key, $slow_queries, $this->cache_group, 60); // Cache for 1 minute
+			}
             
             if ($slow_queries) {
                 foreach ($slow_queries as $query) {
@@ -1393,22 +1392,22 @@ private function collect_table_statistics() {
 /**
  * Collect server information
  */
-// Around line 1279 - Fix collect_server_information method
-/**
- * Collect server information
- */
+
 private function collect_server_information() {
     global $wpdb;
-    
+
     $server_info = [
-        'mysql_version' => $wpdb->db_version(),
-        'php_version' => phpversion(),
+        'mysql_version'     => $wpdb->db_version(),
+        'php_version'       => phpversion(),
         'wordpress_version' => get_bloginfo('version'),
-        'variables' => [],
-        'status' => []
+        'variables'         => [],
+        'status'            => [],
     ];
-    
-    // Collect important MySQL variables
+
+    $cache_group  = 'my_server_info'; // A unique cache group for your data
+    $cache_expiry = HOUR_IN_SECONDS;  // Cache for 1 hour, adjust as needed
+
+    // --- Collect important MySQL variables ---
     $important_vars = [
         'innodb_buffer_pool_size',
         'max_connections',
@@ -1420,19 +1419,35 @@ private function collect_server_information() {
         'join_buffer_size',
         'sort_buffer_size',
         'read_buffer_size',
-        'read_rnd_buffer_size'
+        'read_rnd_buffer_size',
     ];
 
-    // Create placeholders and prepare the query properly
-    $placeholders = implode(',', array_fill(0, count($important_vars), '%s'));
-    $query = "SHOW VARIABLES WHERE Variable_name IN ($placeholders)";
-    $variables = $wpdb->get_results($wpdb->prepare($query, ...$important_vars)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-    
-    foreach ($variables as $var) {
-        $server_info['variables'][$var->Variable_name] = $var->Value;
+    foreach ($important_vars as $var_name) {
+        $cache_key = 'var_' . sanitize_key($var_name); // Unique cache key for each variable
+
+        // Try to get from cache first
+        $variable = wp_cache_get($cache_key, $cache_group);
+
+        if (false === $variable) {
+            // Not in cache, fetch from DB
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $variable = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SHOW VARIABLES WHERE Variable_name = %s",
+                    $var_name
+                )
+            );
+            if ($variable) {
+                wp_cache_set($cache_key, $variable, $cache_group, $cache_expiry);
+            }
+        }
+
+        if ($variable) {
+            $server_info['variables'][$variable->Variable_name] = $variable->Value;
+        }
     }
-    
-    // Collect important MySQL status values
+
+    // --- Collect important MySQL status values ---
     $important_status = [
         'Aborted_clients',
         'Aborted_connects',
@@ -1449,23 +1464,40 @@ private function collect_server_information() {
         'Slow_queries',
         'Table_locks_waited',
         'Threads_connected',
-        'Threads_running'
+        'Threads_running',
     ];
-    
-    // Create placeholders for status query
-    $status_placeholders = implode(',', array_fill(0, count($important_status), '%s'));
-    $status_query = "SHOW STATUS WHERE Variable_name IN ($status_placeholders)";
-    $status = $wpdb->get_results($wpdb->prepare($status_query, ...$important_status)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-    
-    foreach ($status as $stat) {
-        $server_info['status'][$stat->Variable_name] = $stat->Value;
+
+    foreach ($important_status as $status_name) {
+        $cache_key = 'status_' . sanitize_key($status_name); // Unique cache key for each status
+
+        // Try to get from cache first
+        $status_result = wp_cache_get($cache_key, $cache_group);
+
+        if (false === $status_result) {
+            // Not in cache, fetch from DB
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $status_result = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SHOW STATUS WHERE Variable_name = %s",
+                    $status_name
+                )
+            );
+            if ($status_result) {
+                wp_cache_set($cache_key, $status_result, $cache_group, $cache_expiry);
+            }
+        }
+
+        if ($status_result) {
+            $server_info['status'][$status_result->Variable_name] = $status_result->Value;
+        }
     }
-    
+
     return $server_info;
 }
 
+
 /**
- * Collect query cache information
+ * Collect query cache information - FIXED VERSION
  */
 private function collect_query_cache_information() {
     global $wpdb;
@@ -1498,7 +1530,7 @@ private function collect_query_cache_information() {
             }
             $cache_info['size'] = $cache_size->Value;
 
-            // Get query cache usage statistics with caching
+            // Get query cache usage statistics with caching - FIX: Individual queries
             $cache_stats = [
                 'query_cache_free_memory',
                 'query_cache_hits',
@@ -1512,10 +1544,16 @@ private function collect_query_cache_information() {
             $status = wp_cache_get($cache_stats_key, $this->cache_group);
             
             if (false === $status) {
-                // Create placeholders for each variable name
-                $placeholders = implode(',', array_fill(0, count($cache_stats), '%s'));
-                $query = "SHOW STATUS WHERE Variable_name IN ($placeholders)";
-                $status = $wpdb->get_results($wpdb->prepare($query, ...$cache_stats)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                $status = [];
+                foreach ($cache_stats as $stat_name) {
+                    $stat_result = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                        "SHOW STATUS WHERE Variable_name = %s",
+                        $stat_name
+                    ));
+                    if ($stat_result) {
+                        $status[] = $stat_result;
+                    }
+                }
                 wp_cache_set($cache_stats_key, $status, $this->cache_group, 300); // Cache for 5 minutes
             }
 
@@ -1541,6 +1579,7 @@ private function collect_query_cache_information() {
     return $cache_info;
 }
 
+
    
 /**
  * Collect recent error logs if available
@@ -1555,7 +1594,7 @@ private function collect_error_logs() {
     
     try {
         // Try to get MySQL error log location
-        $error_log = $wpdb->get_row("SHOW VARIABLES LIKE 'log_error'");
+		$error_log = $wpdb->get_row("SHOW VARIABLES LIKE 'log_error'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         
         if ($error_log && !empty($error_log->Value)) {
             $error_logs['available'] = true;
@@ -2103,7 +2142,7 @@ public function ajax_get_composition_data() {
     global $wpdb;
     
     // Get all tables
-    $tables = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+     $tables = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         "SELECT TABLE_NAME, 
             DATA_LENGTH + INDEX_LENGTH as total_size
         FROM information_schema.TABLES 
