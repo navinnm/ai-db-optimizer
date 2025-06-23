@@ -17,6 +17,20 @@ class FULGID_AIDBO_Optimization_Engine {
     private $cache_expiry = 3600;
     
     /**
+     * Backup engine instance
+     */
+    private $backup_engine;
+    
+    /**
+     * Constructor
+     */
+    public function __construct() {
+        // Initialize backup engine
+        require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-db-backup.php';
+        $this->backup_engine = new FULGID_AIDBO_DB_Backup();
+    }
+    
+    /**
      * Optimize the database based on analysis results
      */
     public function optimize_database($analysis, $level = 'medium') {
@@ -30,7 +44,42 @@ class FULGID_AIDBO_Optimization_Engine {
             'optimization_actions' => [],
             'performance_impact' => 0,
             'recommendations' => [],
+            'backup_info' => null,
         ];
+        
+        // Create backup before optimization if required
+        $backup_required = $this->backup_engine->is_backup_required($level);
+        error_log('AI DB Optimizer: Backup required for level ' . $level . ': ' . ($backup_required ? 'YES' : 'NO'));
+        
+        if ($backup_required) {
+            error_log('AI DB Optimizer: Creating backup for optimization level: ' . $level);
+            $backup_result = $this->backup_engine->create_backup($level);
+            
+            if (!$backup_result['success']) {
+                error_log('AI DB Optimizer: Backup failed: ' . $backup_result['error']);
+                return [
+                    'success' => false,
+                    'error' => 'Backup failed: ' . $backup_result['error'],
+                    'backup_required' => true
+                ];
+            }
+            
+            error_log('AI DB Optimizer: Backup created successfully: ' . $backup_result['backup_file']);
+            
+            $results['backup_info'] = $backup_result;
+            $results['optimization_actions'][] = [
+                'type' => 'backup_created',
+                'description' => esc_html(
+                    sprintf(
+                        /* translators: 1: Backup filename, 2: File size, 3: Number of tables */
+                        __('Created database backup: %1$s (%2$s, %3$d tables)', 'ai-database-optimizer'),
+                        $backup_result['backup_file'],
+                        $backup_result['file_size'],
+                        $backup_result['tables_count']
+                    )
+                ),
+            ];
+        }
         
         // Determine which optimizations to perform based on level
         $optimizations = $this->get_optimizations_for_level($level);

@@ -37,6 +37,8 @@ public function __construct($analyzer, $optimization_engine) {
     add_action('wp_ajax_fulgid_ai_db_optimizer_get_performance_data', [$this, 'ajax_get_performance_data']);
     add_action('admin_enqueue_scripts', [$this, 'enqueue_chart_data']);
     add_action('wp_ajax_fulgid_ai_db_optimizer_get_composition_data', [$this, 'ajax_get_composition_data']);
+    add_action('wp_ajax_fulgid_ai_db_optimizer_get_backup_history', [$this, 'ajax_get_backup_history']);
+    add_action('wp_ajax_fulgid_ai_db_optimizer_restore_backup', [$this, 'ajax_restore_backup']);
 }
 
     /**
@@ -275,6 +277,12 @@ public function render_admin_page() {
                              <path d="M22 12H18L15 21L9 3L6 12H2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                             <?php esc_html_e('Collect Performance Data', 'ai-database-optimizer'); ?>
+                        </button>
+                        <button id="ai-db-view-backups" class="button">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <?php esc_html_e('View Backups', 'ai-database-optimizer'); ?>
                         </button>
                     </div>
                 </div>
@@ -2439,6 +2447,155 @@ public function ajax_get_composition_data() {
         'labels' => $labels,
         'values' => $values
     ]);
+}
+
+/**
+ * AJAX handler to get backup history
+ */
+public function ajax_get_backup_history() {
+    // Verify nonce
+    if (!wp_verify_nonce($_POST['nonce'], 'fulgid_ai_db_optimizer_nonce')) {
+        wp_send_json_error(['message' => __('Security check failed.', 'ai-database-optimizer')]);
+        return;
+    }
+    
+    // Check user capabilities
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'ai-database-optimizer')]);
+        return;
+    }
+    
+    try {
+        // Get backup engine
+        require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-db-backup.php';
+        $backup_engine = new FULGID_AIDBO_DB_Backup();
+        
+        $backups = $backup_engine->get_backup_history(10);
+        $backup_dir_info = $backup_engine->get_backup_directory_info();
+        
+        $html = '<div class="ai-backup-history">';
+        $html .= '<h3>' . esc_html__('Database Backup History', 'ai-database-optimizer') . '</h3>';
+        
+        if (!empty($backups)) {
+            $html .= '<table class="widefat fixed striped">';
+            $html .= '<thead>';
+            $html .= '<tr>';
+            $html .= '<th>' . esc_html__('Backup Time', 'ai-database-optimizer') . '</th>';
+            $html .= '<th>' . esc_html__('Optimization Level', 'ai-database-optimizer') . '</th>';
+            $html .= '<th>' . esc_html__('File Size', 'ai-database-optimizer') . '</th>';
+            $html .= '<th>' . esc_html__('Tables', 'ai-database-optimizer') . '</th>';
+            $html .= '<th>' . esc_html__('Status', 'ai-database-optimizer') . '</th>';
+            $html .= '<th>' . esc_html__('Actions', 'ai-database-optimizer') . '</th>';
+            $html .= '</tr>';
+            $html .= '</thead>';
+            $html .= '<tbody>';
+            
+            foreach ($backups as $backup) {
+                $file_size = $this->format_backup_file_size($backup->file_size);
+                $status = $backup->is_restored ? __('Restored', 'ai-database-optimizer') : __('Available', 'ai-database-optimizer');
+                $status_class = $backup->is_restored ? 'restored' : 'available';
+                
+                $html .= '<tr>';
+                $html .= '<td>' . esc_html(mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $backup->backup_time)) . '</td>';
+                $html .= '<td><span class="backup-level backup-level-' . esc_attr($backup->optimization_level) . '">' . esc_html(ucfirst($backup->optimization_level)) . '</span></td>';
+                $html .= '<td>' . esc_html($file_size) . '</td>';
+                $html .= '<td>' . esc_html($backup->tables_count) . '</td>';
+                $html .= '<td><span class="backup-status backup-status-' . esc_attr($status_class) . '">' . esc_html($status) . '</span></td>';
+                $html .= '<td>';
+                
+                if (!$backup->is_restored && file_exists($backup->backup_filepath)) {
+                    $html .= '<button type="button" class="button button-secondary restore-backup" data-backup-id="' . esc_attr($backup->id) . '">';
+                    $html .= esc_html__('Restore', 'ai-database-optimizer');
+                    $html .= '</button>';
+                } else {
+                    $html .= '<span class="description">' . esc_html__('N/A', 'ai-database-optimizer') . '</span>';
+                }
+                
+                $html .= '</td>';
+                $html .= '</tr>';
+            }
+            
+            $html .= '</tbody>';
+            $html .= '</table>';
+        } else {
+            $html .= '<p>' . esc_html__('No backups found.', 'ai-database-optimizer') . '</p>';
+        }
+        
+        // Backup directory info
+        $html .= '<div class="ai-backup-directory-info">';
+        $html .= '<h4>' . esc_html__('Backup Directory Information', 'ai-database-optimizer') . '</h4>';
+        $html .= '<p><strong>' . esc_html__('Location:', 'ai-database-optimizer') . '</strong> ' . esc_html($backup_dir_info['path']) . '</p>';
+        $html .= '<p><strong>' . esc_html__('Total Files:', 'ai-database-optimizer') . '</strong> ' . esc_html($backup_dir_info['file_count']) . '</p>';
+        $html .= '<p><strong>' . esc_html__('Total Size:', 'ai-database-optimizer') . '</strong> ' . esc_html($this->format_backup_file_size($backup_dir_info['total_size'])) . '</p>';
+        $html .= '</div>';
+        
+        $html .= '</div>';
+        
+        wp_send_json_success(['html' => $html]);
+        
+    } catch (Exception $e) {
+        error_log('AI DB Optimizer - Backup history error: ' . $e->getMessage());
+        wp_send_json_error(['message' => __('Failed to retrieve backup history.', 'ai-database-optimizer')]);
+    }
+}
+
+/**
+ * AJAX handler to restore from backup
+ */
+public function ajax_restore_backup() {
+    // Verify nonce
+    if (!wp_verify_nonce($_POST['nonce'], 'fulgid_ai_db_optimizer_nonce')) {
+        wp_send_json_error(['message' => __('Security check failed.', 'ai-database-optimizer')]);
+        return;
+    }
+    
+    // Check user capabilities
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'ai-database-optimizer')]);
+        return;
+    }
+    
+    $backup_id = intval($_POST['backup_id'] ?? 0);
+    
+    if (!$backup_id) {
+        wp_send_json_error(['message' => __('Invalid backup ID.', 'ai-database-optimizer')]);
+        return;
+    }
+    
+    try {
+        // Get backup engine
+        require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-db-backup.php';
+        $backup_engine = new FULGID_AIDBO_DB_Backup();
+        
+        $result = $backup_engine->restore_backup($backup_id);
+        
+        if ($result['success']) {
+            wp_send_json_success([
+                'message' => $result['message'],
+                'html' => '<div class="notice notice-success"><p>' . esc_html($result['message']) . '</p></div>'
+            ]);
+        } else {
+            wp_send_json_error(['message' => $result['error']]);
+        }
+        
+    } catch (Exception $e) {
+        error_log('AI DB Optimizer - Backup restore error: ' . $e->getMessage());
+        wp_send_json_error(['message' => __('Failed to restore backup.', 'ai-database-optimizer')]);
+    }
+}
+
+/**
+ * Format backup file size for display
+ */
+private function format_backup_file_size($bytes) {
+    $units = ['B', 'KB', 'MB', 'GB'];
+    $bytes = max($bytes, 0);
+    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+    $pow = min($pow, count($units) - 1);
+    
+    $bytes /= (1 << (10 * $pow));
+    
+    return round($bytes, 2) . ' ' . $units[$pow];
 }
 
 }

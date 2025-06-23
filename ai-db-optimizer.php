@@ -11,7 +11,7 @@
  * Plugin Name: AI Database Optimizer
  * Plugin URI:  https://fulgid.in/ai-database-optimizer
  * Description: AI-based WordPress database optimization plugin that analyzes and optimizes your database for better performance.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      Fulgid
  * Author URI:  https://fulgid.in
  * Text Domain: ai-database-optimizer
@@ -28,7 +28,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('FULGID_AI_DATABASE_OPTIMIZER_VERSION', '1.0.0');
+define('FULGID_AI_DATABASE_OPTIMIZER_VERSION', '1.1.0');
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -38,6 +38,9 @@ require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-db-ai-opt
 
 // Initialize the plugin
 function fulgid_ai_db_optimizer_init() {
+    // Ensure database tables are up to date
+    fulgid_ai_db_optimizer_create_tables();
+    
     $plugin = new FULGID_AIDBO_AI_DB_Optimizer();
     $plugin->init();
 }
@@ -68,6 +71,8 @@ function fulgid_ai_db_optimizer_activate() {
         'optimization_level' => 'medium',
         'tables_to_exclude' => [],
         'last_optimization' => '',
+        'auto_backup' => true,
+        'max_backups' => 5,
     ];
     
     add_option('fulgid_ai_db_optimizer_settings', $default_settings);
@@ -79,7 +84,7 @@ function fulgid_ai_db_optimizer_activate() {
 /**
  * Create plugin tables
  * 
- * @since 1.0.0
+ * @since 1.1.0
  */
 function fulgid_ai_db_optimizer_create_tables() {
     global $wpdb;
@@ -95,11 +100,43 @@ function fulgid_ai_db_optimizer_create_tables() {
         tables_affected text NOT NULL,
         performance_impact float NOT NULL,
         recommendations text,
+        performance_data longtext,
         PRIMARY KEY (id)
     ) {$charset_collate};";
     
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
+    
+    // Check if we need to add the performance_data column to existing table
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM {$table_name} LIKE %s",
+        'performance_data'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN performance_data longtext AFTER recommendations");
+    }
+    
+    // Create backup history table
+    $backup_table_name = $wpdb->prefix . 'ai_db_backup_history';
+    
+    $backup_sql = "CREATE TABLE {$backup_table_name} (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        backup_filename varchar(255) NOT NULL,
+        backup_filepath varchar(500) NOT NULL,
+        backup_time datetime DEFAULT CURRENT_TIMESTAMP,
+        optimization_level varchar(50) NOT NULL,
+        file_size bigint(20) DEFAULT 0,
+        tables_count int(11) DEFAULT 0,
+        tables_list longtext,
+        is_restored tinyint(1) DEFAULT 0,
+        restored_time datetime NULL,
+        PRIMARY KEY (id),
+        KEY backup_time (backup_time),
+        KEY optimization_level (optimization_level)
+    ) {$charset_collate};";
+    
+    dbDelta($backup_sql);
 }
 
 // Deactivation hook
@@ -125,6 +162,28 @@ function fulgid_ai_db_optimizer_uninstall() {
     if (preg_match('/^[a-zA-Z0-9_]+$/', $table_name)) {
         // Use direct query with validated table name since $wpdb->prepare() doesn't work with table names
         $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($table_name) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    }
+    
+    // Remove backup history table
+    $backup_table_name = $wpdb->prefix . 'ai_db_backup_history';
+    
+    // Validate table name for security (only contains valid characters)
+    if (preg_match('/^[a-zA-Z0-9_]+$/', $backup_table_name)) {
+        // Use direct query with validated table name since $wpdb->prepare() doesn't work with table names
+        $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($backup_table_name) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    }
+    
+    // Clean up backup files
+    $upload_dir = wp_upload_dir();
+    $backup_dir = $upload_dir['basedir'] . '/ai-db-optimizer-backups';
+    if (is_dir($backup_dir)) {
+        $files = glob($backup_dir . '/*.sql');
+        foreach ($files as $file) {
+            wp_delete_file($file);
+        }
+        if (is_dir($backup_dir) && count(scandir($backup_dir)) == 2) { // Only . and .. remain
+            rmdir($backup_dir);
+        }
     }
     
     // Clear any remaining scheduled events

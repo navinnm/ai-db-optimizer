@@ -136,6 +136,75 @@
                 }
             });
         });
+
+        // Handle view backups button click
+        $(document).on('click', '#ai-db-view-backups', function() {
+            var $button = $(this);
+            var $results = $('#ai-db-results');
+            
+            $button.prop('disabled', true).text('Loading backups...');
+            $results.html('<p class="ai-db-loading">Loading backup history...</p>');
+            
+            $.ajax({
+                url: aiDbOptimizer.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'fulgid_ai_db_optimizer_get_backup_history',
+                    nonce: aiDbOptimizer.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $results.html(response.data.html);
+                        
+                        // Auto-scroll to results section
+                        scrollToResultsSection();
+                    } else {
+                        $results.html('<div class="notice notice-error"><p>' + response.data.message + '</p></div>');
+                    }
+                },
+                error: function() {
+                    $results.html('<div class="notice notice-error"><p>An error occurred while loading backup history.</p></div>');
+                },
+                complete: function() {
+                    $button.prop('disabled', false).text('View Backups');
+                }
+            });
+        });
+
+        // Handle restore backup button click (delegated since button is dynamically added)
+        $(document).on('click', '.restore-backup', function() {
+            var $button = $(this);
+            var backupId = $button.data('backup-id');
+            
+            if (!confirm('Are you sure you want to restore this backup? This will overwrite your current database.')) {
+                return;
+            }
+            
+            $button.prop('disabled', true).text('Restoring...');
+            
+            $.ajax({
+                url: aiDbOptimizer.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'fulgid_ai_db_optimizer_restore_backup',
+                    nonce: aiDbOptimizer.nonce,
+                    backup_id: backupId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert('Backup restored successfully! The page will reload.');
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + response.data.message);
+                        $button.prop('disabled', false).text('Restore');
+                    }
+                },
+                error: function() {
+                    alert('An error occurred while restoring the backup.');
+                    $button.prop('disabled', false).text('Restore');
+                }
+            });
+        });
     });
     
     function initializeCharts() {
