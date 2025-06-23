@@ -11,7 +11,7 @@
  * Plugin Name: AI Database Optimizer
  * Plugin URI:  https://fulgid.in/ai-database-optimizer
  * Description: AI-based WordPress database optimization plugin that analyzes and optimizes your database for better performance.
- * Version:     1.1.0
+ * Version:     1.1.2
  * Author:      Fulgid
  * Author URI:  https://fulgid.in
  * Text Domain: ai-database-optimizer
@@ -28,7 +28,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('FULGID_AI_DATABASE_OPTIMIZER_VERSION', '1.1.0');
+define('FULGID_AI_DATABASE_OPTIMIZER_VERSION', '1.1.2');
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -108,13 +108,25 @@ function fulgid_ai_db_optimizer_create_tables() {
     dbDelta($sql);
     
     // Check if we need to add the performance_data column to existing table
-    $column_exists = $wpdb->get_results($wpdb->prepare(
-        "SHOW COLUMNS FROM {$table_name} LIKE %s",
+    $column_exists = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        "SHOW COLUMNS FROM `" . esc_sql($table_name) . "` LIKE %s",
         'performance_data'
     ));
     
     if (empty($column_exists)) {
-        $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN performance_data longtext AFTER recommendations");
+        // Use direct query with escaped table name since wpdb::prepare doesn't support table names
+        $wpdb->query("ALTER TABLE `" . esc_sql($table_name) . "` ADD COLUMN performance_data longtext AFTER recommendations"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+    }
+    
+    // Check if we need to add the optimization_actions column
+    $actions_column_exists = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        "SHOW COLUMNS FROM `" . esc_sql($table_name) . "` LIKE %s",
+        'optimization_actions'
+    ));
+    
+    if (empty($actions_column_exists)) {
+        // Use direct query with escaped table name since wpdb::prepare doesn't support table names
+        $wpdb->query("ALTER TABLE `" . esc_sql($table_name) . "` ADD COLUMN optimization_actions longtext AFTER performance_data"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
     }
     
     // Create backup history table
@@ -173,7 +185,7 @@ function fulgid_ai_db_optimizer_uninstall() {
         $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($backup_table_name) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
     
-    // Clean up backup files
+    // Clean up backup files using WP_Filesystem
     $upload_dir = wp_upload_dir();
     $backup_dir = $upload_dir['basedir'] . '/ai-db-optimizer-backups';
     if (is_dir($backup_dir)) {
@@ -181,8 +193,13 @@ function fulgid_ai_db_optimizer_uninstall() {
         foreach ($files as $file) {
             wp_delete_file($file);
         }
-        if (is_dir($backup_dir) && count(scandir($backup_dir)) == 2) { // Only . and .. remain
-            rmdir($backup_dir);
+        
+        // Use WP_Filesystem to remove directory
+        if (WP_Filesystem()) {
+            global $wp_filesystem;
+            if (is_dir($backup_dir) && count(scandir($backup_dir)) == 2) { // Only . and .. remain
+                $wp_filesystem->rmdir($backup_dir);
+            }
         }
     }
     

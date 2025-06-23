@@ -1474,7 +1474,7 @@ button#ai-db-analyze {
     border-color: #301a70;
 }
 
-#ai-db-collect-performance {
+#ai-db-collect-performance , #ai-db-view-backups{
     background: #4527a0;
     border-color: #4527a0;
     color: #fff;

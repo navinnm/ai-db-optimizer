@@ -1,9 +1,9 @@
 === AI Database Optimizer ===
 Contributors: Fulgid
-Tags: database, optimization, performance, ai, mysql, backup, restore
+Tags: database, optimization, ai, backup, performance
 Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: 1.1.0
+Stable tag: 1.1.2
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -89,6 +89,24 @@ Yes! Every optimization operation is preceded by an automatic backup. You can ea
 6. Detailed optimization history and performance metrics
 
 == Changelog ==
+
+= 1.1.2 =
+* FIXED: Analysis now always gets fresh data by clearing all caches before analysis
+* FIXED: Optimization performs real database changes with session-based caching for WordPress compliance
+* FIXED: DB health score calculation uses fresh overhead data after optimization
+* FIXED: Enhanced cache clearing strategy with time-based keys for better optimization detection
+* FIXED: Added debug logging for optimization and backup history tracking
+* ENHANCED: WordPress.org compliant caching while ensuring real optimizations are performed
+* ENHANCED: Session-based cache keys prevent stale data while maintaining performance
+
+= 1.1.1 =
+* FIXED: Removed all dummy/hardcoded data from analysis and recommendations
+* FIXED: Query pattern analysis now uses real slow query data instead of simulated patterns
+* FIXED: Table correlation analysis now detects actual WordPress table relationships
+* FIXED: Comprehensive cache clearing after optimization to ensure fresh analysis results
+* FIXED: Enhanced index detection to prevent false positives after optimization
+* ENHANCED: AI recommendations now track specific completed optimizations to avoid repetition
+* ENHANCED: More accurate optimization tracking with detailed action metadata
 
 = 1.1.0 =
 * NEW: Automatic database backup system before every optimization

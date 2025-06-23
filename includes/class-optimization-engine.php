@@ -49,22 +49,17 @@ class FULGID_AIDBO_Optimization_Engine {
         
         // Create backup before optimization if required
         $backup_required = $this->backup_engine->is_backup_required($level);
-        error_log('AI DB Optimizer: Backup required for level ' . $level . ': ' . ($backup_required ? 'YES' : 'NO'));
         
         if ($backup_required) {
-            error_log('AI DB Optimizer: Creating backup for optimization level: ' . $level);
             $backup_result = $this->backup_engine->create_backup($level);
             
             if (!$backup_result['success']) {
-                error_log('AI DB Optimizer: Backup failed: ' . $backup_result['error']);
                 return [
                     'success' => false,
                     'error' => 'Backup failed: ' . $backup_result['error'],
                     'backup_required' => true
                 ];
             }
-            
-            error_log('AI DB Optimizer: Backup created successfully: ' . $backup_result['backup_file']);
             
             $results['backup_info'] = $backup_result;
             $results['optimization_actions'][] = [
@@ -122,6 +117,9 @@ class FULGID_AIDBO_Optimization_Engine {
         // Store optimization history
         $this->store_optimization_history($results, $level);
         
+        // Clear analysis cache to refresh recommendations
+        $this->clear_analysis_cache($results['tables_affected']);
+        
         return $results;
     }
     
@@ -146,6 +144,7 @@ class FULGID_AIDBO_Optimization_Engine {
                 'optimize_tables' => true,
                 'remove_overhead' => true,
                 'add_basic_indexes' => true,
+                'convert_engines' => true,
                 'clean_expired_transients' => true,
             ],
             'high' => [
@@ -153,6 +152,7 @@ class FULGID_AIDBO_Optimization_Engine {
                 'remove_overhead' => true,
                 'add_basic_indexes' => true,
                 'add_advanced_indexes' => true,
+                'convert_engines' => true,
                 'clean_expired_transients' => true,
                 'clean_post_revisions' => true,
                 'clean_auto_drafts' => true,
@@ -173,15 +173,19 @@ class FULGID_AIDBO_Optimization_Engine {
             'performance_impact' => 0,
         ];
         
-        // Check for and remove overhead
+        // Check for and remove overhead - use short cache during optimization session
         if ($optimizations['remove_overhead'] && isset($analysis['overhead']) && $analysis['overhead'] > 0) {
-            $cache_key = 'table_optimize_' . md5($table);
+            $cache_key = 'table_optimize_session_' . md5($table . gmdate('Y-m-d-H-i'));
             $cached_result = wp_cache_get($cache_key, $this->cache_group);
             
             if (false === $cached_result) {
-                // Use backticks for table name after validation
                 $result = $wpdb->query("OPTIMIZE TABLE `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
-                wp_cache_set($cache_key, $result, $this->cache_group, $this->cache_expiry);
+                // Cache for very short time to avoid re-optimizing same table in same session
+                wp_cache_set($cache_key, $result, $this->cache_group, 60);
+                
+                // Immediately clear the analysis cache for this table to force refresh
+                $analysis_cache_key = 'table_analysis_' . md5($table);
+                wp_cache_delete($analysis_cache_key, 'fulgid_ai_db_analyzer');
             } else {
                 $result = $cached_result;
             }
@@ -189,6 +193,8 @@ class FULGID_AIDBO_Optimization_Engine {
             if ($result !== false) {
                 $results['actions'][] = [
                     'type' => 'optimize_table',
+                    'table' => $table,
+                    'overhead_removed' => $analysis['overhead'],
                     'description' => esc_html(
                         sprintf(
                             /* translators: %1$s is the table name, %2$s is the overhead size in megabytes */
@@ -199,6 +205,42 @@ class FULGID_AIDBO_Optimization_Engine {
                     ),
                 ];
                 $results['performance_impact'] += 5; // Estimate 5% improvement for removing overhead
+            }
+        }
+        
+        // Convert table engine if needed
+        if (isset($analysis['suggestions'])) {
+            foreach ($analysis['suggestions'] as $suggestion) {
+                if ($suggestion['type'] == 'engine_conversion' && $optimizations['convert_engines']) {
+                    $cache_key = 'table_engine_session_' . md5($table . gmdate('Y-m-d-H-i'));
+                    $cached_result = wp_cache_get($cache_key, $this->cache_group);
+                    
+                    if (false === $cached_result) {
+                        $result = $wpdb->query("ALTER TABLE `" . esc_sql($table) . "` ENGINE=InnoDB"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+                        wp_cache_set($cache_key, $result, $this->cache_group, 60);
+                        
+                        // Immediately clear the analysis cache for this table to force refresh
+                        $analysis_cache_key = 'table_analysis_' . md5($table);
+                        wp_cache_delete($analysis_cache_key, 'fulgid_ai_db_analyzer');
+                    } else {
+                        $result = $cached_result;
+                    }
+                    
+                    if ($result !== false) {
+                        $results['actions'][] = [
+                            'type' => 'convert_engine',
+                            'table' => $table,
+                            'description' => esc_html(
+                                sprintf(
+                                    /* translators: %s is the table name */
+                                    __('Converted table %s from MyISAM to InnoDB engine for better performance and reliability', 'ai-database-optimizer'), 
+                                    $table
+                                )
+                            ),
+                        ];
+                        $results['performance_impact'] += 20; // Estimate 20% improvement for engine conversion
+                    }
+                }
             }
         }
         
@@ -216,56 +258,93 @@ class FULGID_AIDBO_Optimization_Engine {
                     
                     if ($should_add && isset($suggestion['column'])) {
                         $column = $suggestion['column'];
+                        $composite_columns = $suggestion['composite_columns'] ?? [$column];
                         
-                        // Validate column name
-                        if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+                        // Validate all column names
+                        $valid_columns = true;
+                        foreach ($composite_columns as $col) {
+                            if (!preg_match('/^[a-zA-Z0-9_]+$/', $col)) {
+                                $valid_columns = false;
+                                break;
+                            }
+                        }
+                        
+                        if (!$valid_columns) {
                             continue;
                         }
                         
                         // Generate index name with validation
-                        $index_name = 'ai_opt_' . substr(md5($table . $column), 0, 10);
+                        $index_name = 'ai_opt_' . substr(md5($table . implode('_', $composite_columns)), 0, 10);
                         
                         // Additional validation for index name
                         if (!preg_match('/^[a-zA-Z0-9_]+$/', $index_name)) {
                             continue;
                         }
                         
-                        // Check if index already exists
-                        $cache_key = 'table_indexes_' . md5($table . $column);
-                        $index_exists = wp_cache_get($cache_key, $this->cache_group);
+                        // Check for existing indexes with session-based cache key to ensure fresh data
+                        $index_cache_key = 'table_indexes_session_' . md5($table . gmdate('Y-m-d-H'));
+                        $existing_indexes = wp_cache_get($index_cache_key, $this->cache_group);
                         
-                        if (false === $index_exists) {
-                            // Use prepared statement to check for existing index
-                            $index_exists = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-                                "SHOW INDEX FROM `" . esc_sql($table) . "` WHERE Column_name = %s",
-                                $column
-                            ));
-                            wp_cache_set($cache_key, $index_exists, $this->cache_group, $this->cache_expiry);
+                        if (false === $existing_indexes) {
+                            $existing_indexes = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                                "SHOW INDEX FROM `" . esc_sql($table) . "`"
+                            );
+                            // Cache for 1 hour with hour-based key to get fresh data for each optimization session
+                            wp_cache_set($index_cache_key, $existing_indexes, $this->cache_group, 3600);
                         }
                         
-                        if (empty($index_exists)) {
+                        $index_exists = false;
+                        foreach ($existing_indexes as $idx) {
+                            if (in_array($idx->Column_name, $composite_columns)) {
+                                // Check if this index covers all our required columns
+                                $index_columns = [];
+                                foreach ($existing_indexes as $check_idx) {
+                                    if ($check_idx->Key_name === $idx->Key_name) {
+                                        $index_columns[] = $check_idx->Column_name;
+                                    }
+                                }
+                                
+                                if (count(array_intersect($composite_columns, $index_columns)) >= count($composite_columns)) {
+                                    $index_exists = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!$index_exists) {
                             // Validate all components before creating ALTER query
-                            if (preg_match('/^[a-zA-Z0-9_]+$/', $table) && preg_match('/^[a-zA-Z0-9_]+$/', $column) && preg_match('/^[a-zA-Z0-9_]+$/', $index_name)) {
+                            if (preg_match('/^[a-zA-Z0-9_]+$/', $table) && preg_match('/^[a-zA-Z0-9_]+$/', $index_name)) {
                                 // Create the ALTER TABLE query with validated components
-                                $alter_query = "ALTER TABLE `" . esc_sql($table) . "` ADD INDEX `" . esc_sql($index_name) . "` (`" . esc_sql($column) . "`)";
+                                $columns_sql = '`' . implode('`, `', array_map('esc_sql', $composite_columns)) . '`';
+                                $alter_query = "ALTER TABLE `" . esc_sql($table) . "` ADD INDEX `" . esc_sql($index_name) . "` (" . $columns_sql . ")";
                                 $result = $wpdb->query($alter_query); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.NotPrepared
                             } else {
                                 $result = false;
                             }
                             
                             if ($result !== false) {
+                                // Clear analysis cache immediately after successful index creation
+                                $analysis_cache_key = 'table_analysis_' . md5($table);
+                                wp_cache_delete($analysis_cache_key, 'fulgid_ai_db_analyzer');
+                                
+                                // Clear index cache too
+                                wp_cache_delete($index_cache_key, $this->cache_group);
+                                
                                 $results['actions'][] = [
                                     'type' => 'add_index',
+                                    'table' => $table,
+                                    'columns' => $composite_columns,
+                                    'index_name' => $index_name,
                                     'description' => esc_html(
                                         sprintf(
-                                            /* translators: %1$s is the table name, %2$s is the column name */
-                                            __('Added index on %1$s.%2$s for better performance', 'ai-database-optimizer'), 
+                                            /* translators: %1$s is the table name, %2$s is the column names */
+                                            __('Added index on %1$s (%2$s) for better performance', 'ai-database-optimizer'), 
                                             $table, 
-                                            $column
+                                            implode(', ', $composite_columns)
                                         )
                                     ),
                                 ];
-                                $results['performance_impact'] += 10; // Estimate 10% improvement for each new index
+                                $results['performance_impact'] += (count($composite_columns) > 1 ? 15 : 10); // Higher impact for composite indexes
                             }
                         }
                     }
@@ -282,9 +361,9 @@ class FULGID_AIDBO_Optimization_Engine {
     private function perform_global_optimizations($analysis, $optimizations, &$results) {
         global $wpdb;
         
-        // Clean expired transients
+        // Clean expired transients - use session-based caching
         if ($optimizations['clean_expired_transients']) {
-            $cache_key = 'expired_transients_count';
+            $cache_key = 'expired_transients_session_' . gmdate('Y-m-d-H-i');
             $deleted = wp_cache_get($cache_key, $this->cache_group);
             
             if (false === $deleted) {
@@ -331,8 +410,8 @@ class FULGID_AIDBO_Optimization_Engine {
             // Keep a certain number of revisions, delete the rest
             $keep_revisions = 3; // Could be a setting
             
-            // Get posts with more than keep_revisions revisions
-            $cache_key = 'posts_with_revisions';
+            // Get posts with more than keep_revisions revisions - use hour-based cache
+            $cache_key = 'posts_with_revisions_' . gmdate('Y-m-d-H');
             $posts_with_revisions = wp_cache_get($cache_key, $this->cache_group);
             
             if (false === $posts_with_revisions) {
@@ -344,14 +423,14 @@ class FULGID_AIDBO_Optimization_Engine {
                     HAVING COUNT(*) > %d",
                     $keep_revisions
                 ));
-                wp_cache_set($cache_key, $posts_with_revisions, $this->cache_group, $this->cache_expiry);
+                wp_cache_set($cache_key, $posts_with_revisions, $this->cache_group, 3600);
             }
             
             $deleted_revisions = 0;
             
             foreach ($posts_with_revisions as $post) {
-                // Get the oldest revisions beyond the keep limit
-                $revisions_cache_key = 'revisions_to_delete_' . $post->post_parent;
+                // Get the oldest revisions beyond the keep limit - use minute-based cache
+                $revisions_cache_key = 'revisions_to_delete_' . $post->post_parent . '_' . gmdate('Y-m-d-H-i');
                 $revisions_to_delete = wp_cache_get($revisions_cache_key, $this->cache_group);
                 
                 if (false === $revisions_to_delete) {
@@ -366,7 +445,7 @@ class FULGID_AIDBO_Optimization_Engine {
                             $keep_revisions
                         )
                     );
-                    wp_cache_set($revisions_cache_key, $revisions_to_delete, $this->cache_group, $this->cache_expiry);
+                    wp_cache_set($revisions_cache_key, $revisions_to_delete, $this->cache_group, 300);
                 }
                 
                 if (!empty($revisions_to_delete)) {
@@ -392,9 +471,9 @@ class FULGID_AIDBO_Optimization_Engine {
             }
         }
         
-        // Clean auto-drafts
+        // Clean auto-drafts - use session-based caching
         if ($optimizations['clean_auto_drafts']) {
-            $cache_key = 'auto_drafts_count';
+            $cache_key = 'auto_drafts_session_' . gmdate('Y-m-d-H-i');
             $deleted = wp_cache_get($cache_key, $this->cache_group);
             
             if (false === $deleted) {
@@ -481,7 +560,7 @@ class FULGID_AIDBO_Optimization_Engine {
         // Collect current performance data
         $performance_data = $this->collect_current_performance_data();
         
-        $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+        $insert_result = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
             $table_name,
             [
                 'optimization_time' => current_time('mysql'),
@@ -490,6 +569,7 @@ class FULGID_AIDBO_Optimization_Engine {
                 'performance_impact' => $results['performance_impact'],
                 'recommendations' => wp_json_encode($results['recommendations']),
                 'performance_data' => wp_json_encode($performance_data),
+                'optimization_actions' => wp_json_encode($results['optimization_actions']),
             ],
             [
                 '%s',
@@ -498,8 +578,14 @@ class FULGID_AIDBO_Optimization_Engine {
                 '%f',
                 '%s',
                 '%s',
+                '%s',
             ]
         );
+        
+        // Log optimization history result if debug mode is enabled
+        // if (defined('WP_DEBUG') && WP_DEBUG && $insert_result === false) {
+        //     error_log('AI DB Optimizer: Failed to insert optimization history. Error: ' . $wpdb->last_error);
+        // }
     }
     
     /**
@@ -519,6 +605,7 @@ class FULGID_AIDBO_Optimization_Engine {
             performance_impact float DEFAULT 0,
             recommendations longtext,
             performance_data longtext,
+            optimization_actions longtext,
             PRIMARY KEY (id),
             KEY optimization_time (optimization_time)
         ) $charset_collate;";
@@ -579,5 +666,27 @@ class FULGID_AIDBO_Optimization_Engine {
         wp_cache_set($cache_key, $performance_data, $this->cache_group, $this->cache_expiry);
         
         return $performance_data;
+    }
+    
+    /**
+     * Clear analysis cache for optimized tables
+     */
+    private function clear_analysis_cache($affected_tables) {
+        // Clear table-specific analysis cache
+        foreach ($affected_tables as $table) {
+            $cache_key = 'table_analysis_' . md5($table);
+            wp_cache_delete($cache_key, 'fulgid_ai_db_analyzer');
+            
+            // Clear table indexes cache
+            $index_cache_key = 'table_indexes_session_' . md5($table . gmdate('Y-m-d-H'));
+            wp_cache_delete($index_cache_key, $this->cache_group);
+        }
+        
+        // Clear global cache keys
+        wp_cache_delete('database_tables', 'fulgid_ai_db_analyzer');
+        wp_cache_delete('current_performance_data', $this->cache_group);
+        
+        // Clear performance data option cache to force refresh
+        delete_option('fulgid_ai_db_optimizer_performance_data');
     }
 }

@@ -279,8 +279,8 @@ public function render_admin_page() {
                             <?php esc_html_e('Collect Performance Data', 'ai-database-optimizer'); ?>
                         </button>
                         <button id="ai-db-view-backups" class="button">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21 5C21 6.65685 16.9706 8 12 8C7.02944 8 3 6.65685 3 5M21 5C21 3.34315 16.9706 2 12 2C7.02944 2 3 3.34315 3 5M21 5V19C21 20.66 17 22 12 22C7 22 3 20.66 3 19V5M21 12C21 13.66 17 15 12 15C7 15 3 13.66 3 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                             <?php esc_html_e('View Backups', 'ai-database-optimizer'); ?>
                         </button>
@@ -484,26 +484,20 @@ public function render_admin_page() {
         
         $score = 100; // Start with perfect score
         
-        // Check for overhead with caching
-        $cache_key = 'tables_with_overhead';
-        $tables_with_overhead = wp_cache_get($cache_key, $this->cache_group);
-        
-        if (false === $tables_with_overhead) {
-            $tables_with_overhead = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-                $wpdb->prepare(
-                    "
-                    SELECT TABLE_NAME, DATA_FREE
-                    FROM information_schema.TABLES 
-                    WHERE TABLE_SCHEMA = %s 
-                    AND TABLE_NAME LIKE %s 
-                    AND DATA_FREE > 0
-                    ",
-                    DB_NAME,
-                    $wpdb->esc_like( $wpdb->prefix ) . '%'
-                )
-            );
-            wp_cache_set($cache_key, $tables_with_overhead, $this->cache_group, $this->cache_expiry);
-        }
+        // Always get fresh overhead data for health score calculation
+        $tables_with_overhead = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->prepare(
+                "
+                SELECT TABLE_NAME, DATA_FREE
+                FROM information_schema.TABLES 
+                WHERE TABLE_SCHEMA = %s 
+                AND TABLE_NAME LIKE %s 
+                AND DATA_FREE > 0
+                ",
+                DB_NAME,
+                $wpdb->esc_like( $wpdb->prefix ) . '%'
+            )
+        );
         
         $total_overhead = 0;
         foreach ($tables_with_overhead as $table) {
@@ -1182,6 +1176,9 @@ public function render_admin_page() {
      * Clear all caches when optimization is performed
      */
     private function clear_all_caches() {
+        global $wpdb;
+        
+        // Clear admin UI cache
         wp_cache_delete('db_metrics', $this->cache_group);
         wp_cache_delete('tables_with_overhead', $this->cache_group);
         wp_cache_delete('transient_count', $this->cache_group);
@@ -1196,16 +1193,78 @@ public function render_admin_page() {
         wp_cache_delete('revision_count_insights', $this->cache_group);
         wp_cache_delete('autoload_size_insights', $this->cache_group);
         
-        // Clear index cache keys
-        global $wpdb;
-        $tables = [$wpdb->posts, $wpdb->postmeta, $wpdb->comments];
+        // Clear database analyzer cache for all tables
+        $cache_key = 'wp_tables_list_clear';
+        $tables = wp_cache_get($cache_key, $this->cache_group);
+        
+        if (false === $tables) {
+            $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                "SHOW TABLES LIKE %s",
+                $wpdb->esc_like($wpdb->prefix) . '%'
+            ));
+            wp_cache_set($cache_key, $tables, $this->cache_group, 300); // Cache for 5 minutes
+        }
+        
         foreach ($tables as $table) {
-            $sanitized_table = sanitize_key($table);
-            wp_cache_delete('posts_post_type_index', $this->cache_group);
-            wp_cache_delete('postmeta_meta_key_index', $this->cache_group);
-            // Clear any index cache keys
-            wp_cache_delete('index_' . $sanitized_table . '_post_type', $this->cache_group);
-            wp_cache_delete('index_' . $sanitized_table . '_meta_key', $this->cache_group);
+            // Clear table analysis cache (this is critical for fresh analysis)
+            wp_cache_delete('table_analysis_' . md5($table), 'fulgid_ai_db_analyzer');
+            // Clear table index cache  
+            wp_cache_delete('table_indexes_' . md5($table), 'fulgid_ai_db_analyzer');
+            // Clear column sample cache
+            $columns_cache_key = 'table_columns_' . md5($table);
+            $columns = wp_cache_get($columns_cache_key, $this->cache_group);
+            
+            if (false === $columns) {
+                $columns = $wpdb->get_results("SHOW COLUMNS FROM `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                wp_cache_set($columns_cache_key, $columns, $this->cache_group, 300);
+            }
+            foreach ($columns as $column) {
+                wp_cache_delete('column_sample_' . md5($table . $column->Field), 'fulgid_ai_db_analyzer');
+            }
+        }
+        
+        // Clear optimizer engine cache
+        wp_cache_delete('database_tables', 'fulgid_ai_db_analyzer');
+        wp_cache_delete('current_performance_data', 'fulgid_ai_db_optimizer');
+        
+        // Clear all index-related cache keys
+        foreach ($tables as $table) {
+            wp_cache_delete('table_optimize_' . md5($table), 'fulgid_ai_db_optimizer');
+            // Clear composite index cache for multiple column combinations
+            $table_columns_cache_key = 'table_columns_composite_' . md5($table);
+            $table_columns = wp_cache_get($table_columns_cache_key, $this->cache_group);
+            
+            if (false === $table_columns) {
+                $table_columns = $wpdb->get_results("SHOW COLUMNS FROM `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                wp_cache_set($table_columns_cache_key, $table_columns, $this->cache_group, 300);
+            }
+            foreach ($table_columns as $column) {
+                wp_cache_delete('table_indexes_' . md5($table . $column->Field), 'fulgid_ai_db_optimizer');
+            }
+        }
+        
+        // Clear performance monitoring cache
+        wp_cache_delete('slow_query_log_status', $this->cache_group);
+        wp_cache_delete('slow_query_log_file', $this->cache_group);
+        wp_cache_delete('long_query_time', $this->cache_group);
+        wp_cache_delete('recent_slow_queries', $this->cache_group);
+        
+        // Clear session-based optimization caches (hourly and minute based)
+        $current_hour = gmdate('Y-m-d-H');
+        $current_minute = gmdate('Y-m-d-H-i');
+        
+        foreach ($tables as $table) {
+            wp_cache_delete('table_optimize_session_' . md5($table . time()), 'fulgid_ai_db_optimizer');
+            wp_cache_delete('table_indexes_session_' . md5($table . $current_hour), 'fulgid_ai_db_optimizer');
+        }
+        
+        wp_cache_delete('expired_transients_session_' . $current_minute, 'fulgid_ai_db_optimizer');
+        wp_cache_delete('auto_drafts_session_' . $current_minute, 'fulgid_ai_db_optimizer');
+        wp_cache_delete('posts_with_revisions_' . $current_hour, 'fulgid_ai_db_optimizer');
+        
+        // Force WordPress to clear object cache if using persistent caching
+        if (function_exists('wp_cache_flush')) {
+            wp_cache_flush();
         }
     }
 
@@ -1219,6 +1278,9 @@ public function render_admin_page() {
         if (!current_user_can('manage_options')) {
             wp_send_json_error(['message' => __('You do not have permission to perform this action.', 'ai-database-optimizer')]);
         }
+        
+        // Clear all caches before analysis to ensure fresh data
+        $this->clear_all_caches();
         
         $analysis = $this->analyzer->analyze_database();
         
@@ -1242,7 +1304,7 @@ public function render_admin_page() {
         }
         
         // Get and decode analysis data
-        $analysis_raw = isset($_POST['analysis']) ? wp_unslash($_POST['analysis']) : null;
+        $analysis_raw = isset($_POST['analysis']) ? sanitize_textarea_field(wp_unslash($_POST['analysis'])) : null;
 
         if (!$analysis_raw) {
             wp_send_json_error(['message' => __('No analysis data provided.', 'ai-database-optimizer')]);
@@ -1266,11 +1328,9 @@ public function render_admin_page() {
                 return;
             }
         } catch (Exception $e) {
-            error_log('AI DB Optimizer: Error during optimization - ' . $e->getMessage());
             wp_send_json_error(['message' => __('An error occurred during optimization: ', 'ai-database-optimizer') . $e->getMessage()]);
             return;
         } catch (Error $e) {
-            error_log('AI DB Optimizer: Fatal error during optimization - ' . $e->getMessage());
             wp_send_json_error(['message' => __('A fatal error occurred during optimization. Please check the error logs.', 'ai-database-optimizer')]);
             return;
         }
@@ -2141,7 +2201,7 @@ private function collect_current_performance_metrics() {
     $start_time = microtime(true);
     
     // Measure database size
-    $db_size_result = $wpdb->get_row($wpdb->prepare(
+    $db_size_result = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         "SELECT SUM(data_length + index_length) as size FROM information_schema.TABLES WHERE table_schema = %s",
         DB_NAME
     ));
@@ -2149,11 +2209,11 @@ private function collect_current_performance_metrics() {
     
     // Measure query time with a representative query
     $query_start = microtime(true);
-    $wpdb->get_results("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'publish'");
+    $wpdb->get_results("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'publish'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
     $query_time = (microtime(true) - $query_start) * 1000; // Convert to milliseconds
     
     // Get additional performance indicators
-    $table_count = count($wpdb->get_results("SHOW TABLES LIKE '{$wpdb->prefix}%'"));
+    $table_count = count($wpdb->get_results("SHOW TABLES LIKE '{$wpdb->prefix}%'")); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
     
     // Try to get MySQL performance data
     $mysql_metrics = $this->get_mysql_performance_metrics();
@@ -2188,7 +2248,7 @@ private function get_mysql_performance_metrics() {
         ];
         
         foreach ($status_vars as $var) {
-            $result = $wpdb->get_row($wpdb->prepare(
+            $result = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                 "SHOW STATUS WHERE Variable_name = %s",
                 $var
             ));
@@ -2454,7 +2514,8 @@ public function ajax_get_composition_data() {
  */
 public function ajax_get_backup_history() {
     // Verify nonce
-    if (!wp_verify_nonce($_POST['nonce'], 'fulgid_ai_db_optimizer_nonce')) {
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, 'fulgid_ai_db_optimizer_nonce')) {
         wp_send_json_error(['message' => __('Security check failed.', 'ai-database-optimizer')]);
         return;
     }
@@ -2534,7 +2595,6 @@ public function ajax_get_backup_history() {
         wp_send_json_success(['html' => $html]);
         
     } catch (Exception $e) {
-        error_log('AI DB Optimizer - Backup history error: ' . $e->getMessage());
         wp_send_json_error(['message' => __('Failed to retrieve backup history.', 'ai-database-optimizer')]);
     }
 }
@@ -2544,7 +2604,8 @@ public function ajax_get_backup_history() {
  */
 public function ajax_restore_backup() {
     // Verify nonce
-    if (!wp_verify_nonce($_POST['nonce'], 'fulgid_ai_db_optimizer_nonce')) {
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, 'fulgid_ai_db_optimizer_nonce')) {
         wp_send_json_error(['message' => __('Security check failed.', 'ai-database-optimizer')]);
         return;
     }
@@ -2579,7 +2640,6 @@ public function ajax_restore_backup() {
         }
         
     } catch (Exception $e) {
-        error_log('AI DB Optimizer - Backup restore error: ' . $e->getMessage());
         wp_send_json_error(['message' => __('Failed to restore backup.', 'ai-database-optimizer')]);
     }
 }

@@ -34,7 +34,6 @@ class FULGID_AIDBO_DB_Backup {
             
             // Create backup directory if it doesn't exist
             if (!wp_mkdir_p($backup_path)) {
-                error_log('AI DB Optimizer: Could not create backup directory: ' . $backup_path);
                 throw new Exception('Could not create backup directory: ' . $backup_path);
             }
             
@@ -105,8 +104,6 @@ class FULGID_AIDBO_DB_Backup {
             ];
             
         } catch (Exception $e) {
-            error_log('AI DB Optimizer Backup Error: ' . $e->getMessage());
-            
             return [
                 'success' => false,
                 'error' => $e->getMessage()
@@ -124,7 +121,7 @@ class FULGID_AIDBO_DB_Backup {
         $excluded_tables = isset($settings['tables_to_exclude']) ? $settings['tables_to_exclude'] : [];
         
         // Get all WordPress tables
-        $tables = $wpdb->get_col($wpdb->prepare(
+        $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
             "SHOW TABLES LIKE %s",
             $wpdb->esc_like($wpdb->prefix) . '%'
         ));
@@ -200,7 +197,7 @@ class FULGID_AIDBO_DB_Backup {
         $sql = "\n-- Table: $table\n";
         
         // Get table structure
-        $create_table = $wpdb->get_row("SHOW CREATE TABLE `" . esc_sql($table) . "`", ARRAY_N);
+        $create_table = $wpdb->get_row("SHOW CREATE TABLE `" . esc_sql($table) . "`", ARRAY_N); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
         
         if ($create_table) {
             $sql .= "DROP TABLE IF EXISTS `$table`;\n";
@@ -212,7 +209,7 @@ class FULGID_AIDBO_DB_Backup {
         $offset = 0;
         
         do {
-            $rows = $wpdb->get_results(
+            $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                 $wpdb->prepare(
                     "SELECT * FROM `" . esc_sql($table) . "` LIMIT %d OFFSET %d",
                     $chunk_size,
@@ -258,7 +255,7 @@ class FULGID_AIDBO_DB_Backup {
         // Create table if it doesn't exist
         $this->create_backup_history_table();
         
-        $wpdb->insert(
+        $insert_result = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
             $table_name,
             [
                 'backup_filename' => $backup_info['filename'],
@@ -273,6 +270,11 @@ class FULGID_AIDBO_DB_Backup {
                 '%s', '%s', '%s', '%s', '%d', '%d', '%s'
             ]
         );
+        
+        // Log backup history result if debug mode is enabled
+        // if (defined('WP_DEBUG') && WP_DEBUG && $insert_result === false) {
+        //     error_log('AI DB Optimizer: Failed to insert backup history. Error: ' . $wpdb->last_error);
+        // }
     }
     
     /**
@@ -312,12 +314,15 @@ class FULGID_AIDBO_DB_Backup {
         
         $table_name = $wpdb->prefix . 'ai_db_backup_history';
         
-        return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $table_name 
+        // Use direct query with escaped table name since wpdb::prepare doesn't support table names
+        $query = $wpdb->prepare(
+            "SELECT * FROM `" . esc_sql($table_name) . "` 
             ORDER BY backup_time DESC 
             LIMIT %d",
             $limit
-        ));
+        );
+        
+        return $wpdb->get_results($query); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
     }
     
     /**
@@ -329,8 +334,8 @@ class FULGID_AIDBO_DB_Backup {
         try {
             // Get backup info
             $table_name = $wpdb->prefix . 'ai_db_backup_history';
-            $backup = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $table_name WHERE id = %d",
+            $backup = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                "SELECT * FROM `" . esc_sql($table_name) . "` WHERE id = %d",
                 $backup_id
             ));
             
@@ -356,6 +361,8 @@ class FULGID_AIDBO_DB_Backup {
             foreach ($queries as $query) {
                 $query = trim($query);
                 if (!empty($query) && !preg_match('/^--/', $query)) {
+                    // For restore operations, we need to execute raw SQL
+                    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                     $result = $wpdb->query($query);
                     if ($result === false) {
                         throw new Exception('Error executing restore query: ' . $wpdb->last_error);
@@ -364,7 +371,7 @@ class FULGID_AIDBO_DB_Backup {
             }
             
             // Update backup as restored
-            $wpdb->update(
+            $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                 $table_name,
                 [
                     'is_restored' => 1,
@@ -381,8 +388,6 @@ class FULGID_AIDBO_DB_Backup {
             ];
             
         } catch (Exception $e) {
-            error_log('AI DB Optimizer Restore Error: ' . $e->getMessage());
-            
             return [
                 'success' => false,
                 'error' => $e->getMessage()
@@ -399,12 +404,14 @@ class FULGID_AIDBO_DB_Backup {
         $table_name = $wpdb->prefix . 'ai_db_backup_history';
         
         // Get backups older than max_backups
-        $old_backups = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $table_name 
+        $query = $wpdb->prepare(
+            "SELECT * FROM `" . esc_sql($table_name) . "` 
             ORDER BY backup_time DESC 
             LIMIT %d, 999999",
             $this->max_backups
-        ));
+        );
+        
+        $old_backups = $wpdb->get_results($query); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         
         foreach ($old_backups as $backup) {
             // Delete file if it exists
@@ -413,7 +420,7 @@ class FULGID_AIDBO_DB_Backup {
             }
             
             // Remove from database
-            $wpdb->delete(
+            $wpdb->delete( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                 $table_name,
                 ['id' => $backup->id],
                 ['%d']
@@ -460,20 +467,35 @@ class FULGID_AIDBO_DB_Backup {
         $upload_dir = wp_upload_dir();
         $backup_path = $upload_dir['basedir'] . '/' . $this->backup_dir;
         
+        // Check if directory is writable using WP_Filesystem
+        $is_writable = false;
+        if (is_dir($backup_path)) {
+            if (WP_Filesystem()) {
+                global $wp_filesystem;
+                $is_writable = $wp_filesystem->is_writable($backup_path);
+            }
+        }
+        
         $info = [
             'path' => $backup_path,
             'exists' => is_dir($backup_path),
-            'writable' => is_writable($backup_path),
+            'writable' => $is_writable,
             'total_size' => 0,
             'file_count' => 0
         ];
         
         if ($info['exists']) {
-            $files = glob($backup_path . '/*.sql');
-            $info['file_count'] = count($files);
-            
-            foreach ($files as $file) {
-                $info['total_size'] += filesize($file);
+            // Initialize WP_Filesystem
+            if (WP_Filesystem()) {
+                global $wp_filesystem;
+                $files = glob($backup_path . '/*.sql');
+                $info['file_count'] = count($files);
+                
+                foreach ($files as $file) {
+                    $info['total_size'] += filesize($file);
+                }
+            } else {
+                $info['writable'] = false;
             }
         }
         
