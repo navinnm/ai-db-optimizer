@@ -43,6 +43,9 @@
                     if (response.success) {
                         $results.html(response.data.html);
                         $results.data('analysis', JSON.stringify(response.data.analysis));
+                        
+                        // Auto-scroll to results section
+                        scrollToResultsSection();
                     } else {
                         $results.html('<div class="notice notice-error"><p>' + response.data.message + '</p></div>');
                     }
@@ -118,6 +121,9 @@
                     if (response.success) {
                         $results.html(response.data.html);
                         initTabs();
+                        
+                        // Auto-scroll to results section
+                        scrollToResultsSection();
                     } else {
                         $results.html('<div class="notice notice-error"><p>' + response.data.message + '</p></div>');
                     }
@@ -393,6 +399,22 @@
     function showChartError(canvas, message) {
         var container = $(canvas).parent();
         container.html('<div class="ai-chart-error"><p>' + message + '</p></div>');
+    }
+    
+    function scrollToResultsSection() {
+        // Find the "Analysis & Optimization Results" section
+        var $resultsSection = $('#ai-db-results').closest('.ai-database-optimizer-card');
+        
+        if ($resultsSection.length) {
+            console.log('Scrolling to results section');
+            
+            // Smooth scroll to the results section
+            $('html, body').animate({
+                scrollTop: $resultsSection.offset().top - 50 // 50px offset from top
+            }, 800); // 800ms animation duration
+        } else {
+            console.log('Results section not found for scrolling');
+        }
     }
     
     function initTabs() {
