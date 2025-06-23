@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class Admin_UI {
+class FULGID_AIDBO_Admin_UI {
     /**
      * The DB analyzer instance
      */
@@ -60,14 +60,23 @@ public function register_assets($hook) {
         return;
     }
     
-    // Enqueue Chart.js from CDN
+    // Enqueue Chart.js locally
     wp_enqueue_script(
         'chartjs',
         FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_URL . 'admin/js/chart.min.js',
         [],
         FULGID_AI_DATABASE_OPTIMIZER_VERSION,
-        true
+        false  // Load in header to ensure it's available before our script
     );
+    
+    // Add script attributes for better loading
+    add_filter('script_loader_tag', function($tag, $handle, $src) {
+        if ($handle === 'chartjs') {
+            // Add onload event to confirm Chart.js loads
+            $tag = str_replace('<script ', '<script onload="console.log(\'Chart.js script loaded, Chart available:\', typeof Chart !== \'undefined\')" ', $tag);
+        }
+        return $tag;
+    }, 10, 3);
     
     wp_enqueue_style(
         'ai-database-optimizer-admin',
@@ -92,8 +101,84 @@ public function register_assets($hook) {
             'nonce' => wp_create_nonce('fulgid_ai_db_optimizer_nonce'),
             'analyzing_text' => __('Analyzing database...', 'ai-database-optimizer'),
             'optimizing_text' => __('Optimizing database...', 'ai-database-optimizer'),
+            'plugin_url' => FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_URL,
         ]
     );
+    
+    // Add inline CSS for insights styling
+    $insights_css = '
+        .ai-db-insights-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .ai-db-insight-item {
+            display: flex;
+            margin-bottom: 10px;
+            padding: 16px;
+            border-radius: 6px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .ai-db-insight-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .ai-db-insight-error {
+            background-color: #FEEFEF;
+            border-left: 4px solid #FF5252;
+        }
+        
+        .ai-db-insight-warning {
+            background-color: #FFF8E1;
+            border-left: 4px solid #FFB300;
+        }
+        
+        .ai-db-insight-success {
+            background-color: #E8F5E9;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .ai-db-insight-icon {
+            flex: 0 0 40px;
+            margin-right: 0px;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .ai-db-insight-error .ai-db-insight-icon svg {
+            color: #FF5252;
+        }
+        
+        .ai-db-insight-warning .ai-db-insight-icon svg {
+            color: #FFB300;
+        }
+        
+        .ai-db-insight-success .ai-db-insight-icon svg {
+            color: #4CAF50;
+        }
+        
+        .ai-db-insight-content {
+            flex: 1;
+            padding: 0px;
+        }
+        
+        .ai-db-insight-content h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .ai-db-insight-content p {
+            margin: 0;
+            color: #555;
+        }
+    ';
+    
+    wp_add_inline_style('ai-database-optimizer-admin', $insights_css);
 }
 
 /**
@@ -755,83 +840,7 @@ public function render_admin_page() {
         }
         echo '</ul>';
         
-        // Add CSS for the enhanced insights styling
-        echo '
-        <style>
-            .ai-db-insights-list {
-                list-style: none;
-                padding: 0;
-                margin: 0;
-            }
-            
-            .ai-db-insight-item {
-                display: flex;
-                margin-bottom: 10px;
-                padding: 16px;
-                border-radius: 6px;
-                transition: transform 0.2s, box-shadow 0.2s;
-            }
-            
-            .ai-db-insight-item:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            }
-            
-            .ai-db-insight-error {
-                background-color: #FEEFEF;
-                border-left: 4px solid #FF5252;
-            }
-            
-            .ai-db-insight-warning {
-                background-color: #FFF8E1;
-                border-left: 4px solid #FFB300;
-            }
-            
-            .ai-db-insight-success {
-                background-color: #E8F5E9;
-                border-left: 4px solid #4CAF50;
-            }
-            
-            .ai-db-insight-icon {
-                flex: 0 0 40px;
-                margin-right: 0px;
-                display: flex;
-                align-items: flex-start;
-            }
-            
-            .ai-db-insight-error .ai-db-insight-icon svg {
-                color: #FF5252;
-            }
-            
-            .ai-db-insight-warning .ai-db-insight-icon svg {
-                color: #FFB300;
-            }
-            
-            .ai-db-insight-success .ai-db-insight-icon svg {
-                color: #4CAF50;
-            }
-            
-            .ai-db-insight-content {
-                flex: 1;
-            }
-            .ai-db-insight-content
-            {
-            padding:0px;
-            }
-            
-            .ai-db-insight-content h3 {
-                margin-top: 0;
-                margin-bottom: 8px;
-                font-size: 16px;
-                font-weight: 600;
-            }
-            
-            .ai-db-insight-content p {
-                margin: 0;
-                color: #555;
-            }
-        </style>
-        ';
+        // CSS is now properly enqueued via wp_add_inline_style() in register_assets()
     }
 
 

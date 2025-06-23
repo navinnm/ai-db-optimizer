@@ -38,7 +38,7 @@ require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-db-ai-opt
 
 // Initialize the plugin
 function fulgid_ai_db_optimizer_init() {
-    $plugin = new AI_DB_Optimizer();
+    $plugin = new FULGID_AIDBO_AI_DB_Optimizer();
     $plugin->init();
 }
 add_action('plugins_loaded', 'fulgid_ai_db_optimizer_init');
@@ -131,17 +131,5 @@ function fulgid_ai_db_optimizer_uninstall() {
     wp_clear_scheduled_hook('fulgid_ai_db_optimizer_scheduled_optimization');
 }
 
-// Load plugin textdomain for translations (only if languages folder exists)
-add_action('plugins_loaded', 'fulgid_ai_db_optimizer_load_textdomain');
-function fulgid_ai_db_optimizer_load_textdomain() {
-    $languages_dir = dirname(plugin_basename(__FILE__)) . '/languages/';
-    
-    // Only load textdomain if languages directory exists
-    if (is_dir(FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'languages/')) {
-        load_plugin_textdomain(
-            'ai-database-optimizer',
-            false,
-            $languages_dir
-        );
-    }
-}
+// WordPress automatically loads translations for plugins in the .org directory since 4.6
+// No need to manually load textdomain

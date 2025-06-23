@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class DB_Analyzer {
+class FULGID_AIDBO_DB_Analyzer {
     
     /**
      * Cache group for analyzer data
@@ -232,12 +232,17 @@ class DB_Analyzer {
                 $sample = wp_cache_get($cache_key, $this->cache_group);
                 
                 if (false === $sample) {
-                    // Use a safer approach to query column data
-                    $sample = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
-                        "SELECT `" . esc_sql($column->Field) . "` FROM `" . esc_sql($table) . "` WHERE `" . esc_sql($column->Field) . "` IS NOT NULL AND LENGTH(`" . esc_sql($column->Field) . "`) > 1000 LIMIT 1"
-                    );
-                    // Cache the sample
-                    wp_cache_set($cache_key, $sample, $this->cache_group, $this->cache_expiry);
+                    // Validate table and column names for security
+                    if (preg_match('/^[a-zA-Z0-9_]+$/', $column->Field) && preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
+                        // Use wpdb::prepare() with placeholders for the length check
+                        $query = $wpdb->prepare(
+                            "SELECT `" . esc_sql($column->Field) . "` FROM `" . esc_sql($table) . "` WHERE `" . esc_sql($column->Field) . "` IS NOT NULL AND LENGTH(`" . esc_sql($column->Field) . "`) > %d LIMIT 1",
+                            1000
+                        );
+                        $sample = $wpdb->get_var($query); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+                        // Cache the sample
+                        wp_cache_set($cache_key, $sample, $this->cache_group, $this->cache_expiry);
+                    }
                 }
                 
                 if ($sample && strlen($sample) > 1000) {

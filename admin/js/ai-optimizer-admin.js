@@ -9,16 +9,19 @@
     
     $(document).ready(function() {
         console.log('DOM ready, initializing...');
+        console.log('Chart global variable available:', typeof Chart !== 'undefined');
+        console.log('Window object keys containing "Chart":', Object.keys(window).filter(key => key.toLowerCase().includes('chart')));
+        console.log('Current script sources loaded:', Array.from(document.querySelectorAll('script[src*="chart"]')).map(s => s.src));
         
         // Check if we're on the right page
         if ($('.ai-database-optimizer-wrap').length) {
             console.log('Found optimizer wrap, initializing charts...');
             
-            // Wait a bit for all elements to be ready
+            // Wait longer for Chart.js to load and be available
             setTimeout(function() {
                 initializeCharts();
                 initTabs();
-            }, 100);
+            }, 500);
         }
 
         // Handle analyze button click
@@ -132,47 +135,55 @@
     function initializeCharts() {
         console.log('Initializing charts...');
         
+        // Function to actually initialize charts
+        function doInitCharts() {
+            console.log('Chart.js available, version:', Chart.version);
+            initPerformanceChart();
+            initCompositionChart();
+        }
+        
         // Check if Chart.js is available
-        if (typeof Chart === 'undefined') {
-            console.log('Chart.js not loaded, attempting to load...');
-            loadChartJS(function() {
-                console.log('Chart.js loaded, now initializing charts');
-                initPerformanceChart();
-                initCompositionChart();
-            });
+        if (typeof Chart !== 'undefined') {
+            doInitCharts();
             return;
         }
         
-        console.log('Chart.js already available');
-        initPerformanceChart();
-        initCompositionChart();
+        console.error('Chart.js is not loaded. Trying multiple fallback strategies...');
+        
+        // Strategy 1: Wait for script to load
+        var attempts = 0;
+        var maxAttempts = 20;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            console.log('Attempt', attempts, '- Chart available:', typeof Chart !== 'undefined');
+            
+            if (typeof Chart !== 'undefined') {
+                clearInterval(checkInterval);
+                doInitCharts();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                console.error('Chart.js failed to load after', maxAttempts, 'attempts');
+                
+                // Strategy 2: Try to load Chart.js manually as last resort
+                loadChartJSManually(doInitCharts);
+            }
+        }, 250);
     }
     
-    function loadChartJS(callback) {
-        // Check if already loading
-        if (window.chartJSLoading) {
-            console.log('Chart.js already loading, waiting...');
-            var checkInterval = setInterval(function() {
-                if (typeof Chart !== 'undefined') {
-                    clearInterval(checkInterval);
-                    callback();
-                }
-            }, 100);
-            return;
-        }
-        
-        window.chartJSLoading = true;
-        
+    function loadChartJSManually(callback) {
+        console.log('Attempting manual Chart.js load...');
         var script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
+        script.src = aiDbOptimizer.plugin_url + 'admin/js/chart.min.js';
         script.onload = function() {
-            console.log('Chart.js script loaded successfully');
-            window.chartJSLoading = false;
-            callback();
+            console.log('Manual Chart.js load completed, Chart available:', typeof Chart !== 'undefined');
+            if (typeof Chart !== 'undefined') {
+                callback();
+            } else {
+                console.error('Manual load failed - Chart still not available');
+            }
         };
         script.onerror = function() {
-            console.error('Failed to load Chart.js');
-            window.chartJSLoading = false;
+            console.error('Manual Chart.js load failed');
         };
         document.head.appendChild(script);
     }

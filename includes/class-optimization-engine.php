@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class Optimization_Engine {
+class FULGID_AIDBO_Optimization_Engine {
     
     /**
      * Cache group for optimization data
@@ -173,13 +173,20 @@ class Optimization_Engine {
                             continue;
                         }
                         
+                        // Generate index name with validation
                         $index_name = 'ai_opt_' . substr(md5($table . $column), 0, 10);
+                        
+                        // Additional validation for index name
+                        if (!preg_match('/^[a-zA-Z0-9_]+$/', $index_name)) {
+                            continue;
+                        }
                         
                         // Check if index already exists
                         $cache_key = 'table_indexes_' . md5($table . $column);
                         $index_exists = wp_cache_get($cache_key, $this->cache_group);
                         
                         if (false === $index_exists) {
+                            // Use prepared statement to check for existing index
                             $index_exists = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                                 "SHOW INDEX FROM `" . esc_sql($table) . "` WHERE Column_name = %s",
                                 $column
@@ -188,8 +195,14 @@ class Optimization_Engine {
                         }
                         
                         if (empty($index_exists)) {
-                            // Try to add the index
-                            $result = $wpdb->query("ALTER TABLE `" . esc_sql($table) . "` ADD INDEX `" . esc_sql($index_name) . "` (`" . esc_sql($column) . "`)"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+                            // Validate all components before creating ALTER query
+                            if (preg_match('/^[a-zA-Z0-9_]+$/', $table) && preg_match('/^[a-zA-Z0-9_]+$/', $column) && preg_match('/^[a-zA-Z0-9_]+$/', $index_name)) {
+                                // Create the ALTER TABLE query with validated components
+                                $alter_query = "ALTER TABLE `" . esc_sql($table) . "` ADD INDEX `" . esc_sql($index_name) . "` (`" . esc_sql($column) . "`)";
+                                $result = $wpdb->query($alter_query); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.NotPrepared
+                            } else {
+                                $result = false;
+                            }
                             
                             if ($result !== false) {
                                 $results['actions'][] = [

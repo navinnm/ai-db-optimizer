@@ -8,7 +8,7 @@ require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-db-analyz
 require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'includes/class-optimization-engine.php';
 require_once FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR . 'admin/class-admin-ui.php';
 
-class AI_DB_Optimizer {
+class FULGID_AIDBO_AI_DB_Optimizer {
     /**
      * The DB analyzer instance
      */
@@ -29,9 +29,9 @@ class AI_DB_Optimizer {
      */
     public function init() {
         // Initialize components
-        $this->analyzer = new DB_Analyzer();
-        $this->optimization_engine = new Optimization_Engine();
-        $this->admin_ui = new Admin_UI($this->analyzer, $this->optimization_engine);
+        $this->analyzer = new FULGID_AIDBO_DB_Analyzer();
+        $this->optimization_engine = new FULGID_AIDBO_Optimization_Engine();
+        $this->admin_ui = new FULGID_AIDBO_Admin_UI($this->analyzer, $this->optimization_engine);
         
         // Set up hooks
         add_action('admin_init', [$this, 'register_settings']);
