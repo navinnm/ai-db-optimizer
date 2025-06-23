@@ -135,57 +135,28 @@
     function initializeCharts() {
         console.log('Initializing charts...');
         
-        // Function to actually initialize charts
-        function doInitCharts() {
+        // Check if Chart.js is available
+        if (typeof Chart !== 'undefined') {
             console.log('Chart.js available, version:', Chart.version);
             initPerformanceChart();
             initCompositionChart();
-        }
-        
-        // Check if Chart.js is available
-        if (typeof Chart !== 'undefined') {
-            doInitCharts();
             return;
         }
         
-        console.error('Chart.js is not loaded. Trying multiple fallback strategies...');
+        console.log('Chart.js not immediately available, waiting...');
         
-        // Strategy 1: Wait for script to load
-        var attempts = 0;
-        var maxAttempts = 20;
-        var checkInterval = setInterval(function() {
-            attempts++;
-            console.log('Attempt', attempts, '- Chart available:', typeof Chart !== 'undefined');
-            
+        // Wait a bit for Chart.js to load
+        setTimeout(function() {
             if (typeof Chart !== 'undefined') {
-                clearInterval(checkInterval);
-                doInitCharts();
-            } else if (attempts >= maxAttempts) {
-                clearInterval(checkInterval);
-                console.error('Chart.js failed to load after', maxAttempts, 'attempts');
-                
-                // Strategy 2: Try to load Chart.js manually as last resort
-                loadChartJSManually(doInitCharts);
-            }
-        }, 250);
-    }
-    
-    function loadChartJSManually(callback) {
-        console.log('Attempting manual Chart.js load...');
-        var script = document.createElement('script');
-        script.src = aiDbOptimizer.plugin_url + 'admin/js/chart.min.js';
-        script.onload = function() {
-            console.log('Manual Chart.js load completed, Chart available:', typeof Chart !== 'undefined');
-            if (typeof Chart !== 'undefined') {
-                callback();
+                console.log('Chart.js loaded after delay, version:', Chart.version);
+                initPerformanceChart();
+                initCompositionChart();
             } else {
-                console.error('Manual load failed - Chart still not available');
+                console.error('Chart.js failed to load. Charts will not be available.');
+                // Hide chart containers or show error message
+                $('.chart-container').html('<p>Charts are temporarily unavailable.</p>');
             }
-        };
-        script.onerror = function() {
-            console.error('Manual Chart.js load failed');
-        };
-        document.head.appendChild(script);
+        }, 1000);
     }
     
     function initPerformanceChart() {

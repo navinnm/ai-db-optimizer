@@ -69,11 +69,11 @@ public function register_assets($hook) {
         false  // Load in header to ensure it's available before our script
     );
     
-    // Add script attributes for better loading
+    // Add script attributes for debugging
     add_filter('script_loader_tag', function($tag, $handle, $src) {
         if ($handle === 'chartjs') {
             // Add onload event to confirm Chart.js loads
-            $tag = str_replace('<script ', '<script onload="console.log(\'Chart.js script loaded, Chart available:\', typeof Chart !== \'undefined\')" ', $tag);
+            $tag = str_replace('<script ', '<script onload="console.log(\'Chart.js UMD script loaded, Chart available:\', typeof Chart !== \'undefined\')" ', $tag);
         }
         return $tag;
     }, 10, 3);
