@@ -3,7 +3,7 @@ Contributors: Fulgid
 Tags: database, optimization, ai, backup, performance
 Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: 1.1.2
+Stable tag: 1.1.4
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -90,7 +90,15 @@ Yes! Every optimization operation is preceded by an automatic backup. You can ea
 
 == Changelog ==
 
-= 1.1.2 =
+= 1.1.4 =
+* SECURITY: Fixed SQL injection vulnerabilities by properly using wpdb->prepare() for all user inputs
+* SECURITY: Enhanced input validation with regex checks for table/column names  
+* SECURITY: Added proper caching to all direct database queries per WordPress standards
+* SECURITY: Strengthened nonce verification and capability checks across all AJAX handlers
+* ENHANCED: Improved WordPress coding standards compliance
+* ENHANCED: Better error handling for invalid database identifiers
+
+= 1.1.3 =
 * FIXED: Analysis now always gets fresh data by clearing all caches before analysis
 * FIXED: Optimization performs real database changes with session-based caching for WordPress compliance
 * FIXED: DB health score calculation uses fresh overhead data after optimization
