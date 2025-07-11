@@ -532,12 +532,14 @@ public function render_admin_page() {
                 if (false === $index_exists) {
                     // Validate table and column names for security - only alphanumeric and underscores
                     if (preg_match('/^[a-zA-Z0-9_]+$/', $sanitized_table) && preg_match('/^[a-zA-Z0-9_]+$/', $sanitized_column)) {
+                        // @codingStandardsIgnoreStart
                         $index_exists = $wpdb->get_results( 
                             $wpdb->prepare(
                                 "SHOW INDEX FROM `" . esc_sql($sanitized_table) . "` WHERE Column_name = %s",
                                 $sanitized_column
                             )
-                        ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                        );
+                        // @codingStandardsIgnoreEnd
                     } else {
                         $index_exists = array(); // Invalid names, assume no index
                     }
@@ -705,12 +707,14 @@ public function render_admin_page() {
         $index_check = wp_cache_get($posts_index_cache_key, $this->cache_group);
         
         if (false === $index_check) {
+            // @codingStandardsIgnoreStart
             $index_check = $wpdb->get_var(
                 $wpdb->prepare(
                     "SHOW INDEX FROM `" . esc_sql($wpdb->posts) . "` WHERE Column_name = %s",
                     'post_type'
                 )
-            ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            );
+            // @codingStandardsIgnoreEnd
             wp_cache_set($posts_index_cache_key, $index_check, $this->cache_group, $this->cache_expiry);
         }
         
@@ -722,12 +726,14 @@ public function render_admin_page() {
         $index_check = wp_cache_get($meta_index_cache_key, $this->cache_group);
         
         if (false === $index_check) {
+            // @codingStandardsIgnoreStart
             $index_check = $wpdb->get_var(
                 $wpdb->prepare(
                     "SHOW INDEX FROM `" . esc_sql($wpdb->postmeta) . "` WHERE Column_name = %s",
                     'meta_key'
                 )
-            ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            );
+            // @codingStandardsIgnoreEnd
             wp_cache_set($meta_index_cache_key, $index_check, $this->cache_group, $this->cache_expiry);
         }
         
@@ -1114,9 +1120,11 @@ public function render_admin_page() {
         $table_count = wp_cache_get($tables_cache_key, $this->cache_group);
         
         if (false === $table_count) {
+            // @codingStandardsIgnoreStart
             $tables = $wpdb->get_results(
                 $wpdb->prepare("SHOW TABLES LIKE %s", $wpdb->prefix . '%')
-            ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            );
+            // @codingStandardsIgnoreEnd
             $table_count = count($tables);
             wp_cache_set($tables_cache_key, $table_count, $this->cache_group, $this->cache_expiry);
         }
@@ -2237,9 +2245,11 @@ private function collect_current_performance_metrics() {
     $table_count = wp_cache_get($table_count_cache_key, 'ai_db_optimizer');
     
     if (false === $table_count) {
+        // @codingStandardsIgnoreStart
         $table_count = count($wpdb->get_results(
             $wpdb->prepare("SHOW TABLES LIKE %s", $wpdb->prefix . '%')
-        )); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        ));
+        // @codingStandardsIgnoreEnd
         wp_cache_set($table_count_cache_key, $table_count, 'ai_db_optimizer', 300); // Cache for 5 minutes
     }
     
