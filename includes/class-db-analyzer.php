@@ -46,13 +46,13 @@ class FULGID_AIDBO_DB_Analyzer {
             
             if (false === $table_analysis) {
                 // Get table status with proper escaping
-                $status = $wpdb->get_row($wpdb->prepare("SHOW TABLE STATUS LIKE %s", $table)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                $status = $wpdb->get_row($wpdb->prepare("SHOW TABLE STATUS LIKE %s", $table)); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 
                 // Get indexes - table name is validated above
-                $indexes = $wpdb->get_results("SHOW INDEX FROM `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                $indexes = $wpdb->get_results("SHOW INDEX FROM `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 
                 // Get column information
-                $columns = $wpdb->get_results("SHOW FULL COLUMNS FROM `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                $columns = $wpdb->get_results("SHOW FULL COLUMNS FROM `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 
                 // Analyze table structure and data
                 $table_analysis = $this->analyze_table($table, $status, $indexes, $columns);
@@ -92,7 +92,7 @@ class FULGID_AIDBO_DB_Analyzer {
         $tables = wp_cache_get($cache_key, $this->cache_group);
         
         if (false === $tables) {
-            $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SHOW TABLES LIKE %s",
                 $wpdb->esc_like($wpdb->prefix) . '%'
             ));
@@ -315,7 +315,7 @@ class FULGID_AIDBO_DB_Analyzer {
                             "SELECT `" . esc_sql($column->Field) . "` FROM `" . esc_sql($table) . "` WHERE `" . esc_sql($column->Field) . "` IS NOT NULL AND LENGTH(`" . esc_sql($column->Field) . "`) > %d LIMIT 1",
                             1000
                         );
-                        $sample = $wpdb->get_var($query); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+                        $sample = $wpdb->get_var($query); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.NotPrepared
                         // Cache the sample
                         wp_cache_set($cache_key, $sample, $this->cache_group, $this->cache_expiry);
                     }
@@ -756,7 +756,7 @@ class FULGID_AIDBO_DB_Analyzer {
         $tables = wp_cache_get($cache_key, $this->cache_group);
         
         if (false === $tables) {
-            $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SHOW TABLES LIKE %s",
                 $wpdb->esc_like($wpdb->prefix) . '%'
             ));
@@ -883,7 +883,7 @@ class FULGID_AIDBO_DB_Analyzer {
         }
         
         // Check for post revisions cleanup
-        $revision_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $revision_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         
         if ($revision_count > 100 && !in_array('clean_post_revisions', $completed_actions)) {
             $recommendations[] = [
@@ -901,7 +901,7 @@ class FULGID_AIDBO_DB_Analyzer {
         }
         
         // Check for expired transients
-        $expired_transients = $wpdb->get_var($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $expired_transients = $wpdb->get_var($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             "SELECT COUNT(*) FROM {$wpdb->options} 
             WHERE option_name LIKE %s 
             AND option_value < %d",
@@ -957,7 +957,7 @@ class FULGID_AIDBO_DB_Analyzer {
         $table_name = $wpdb->prefix . 'ai_db_optimization_history';
         
         // Check if table exists
-        $table_exists = $wpdb->get_var($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $table_exists = $wpdb->get_var($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             "SHOW TABLES LIKE %s",
             $table_name
         ));
@@ -966,7 +966,7 @@ class FULGID_AIDBO_DB_Analyzer {
             return [];
         }
         
-        return $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             "SELECT * FROM `" . esc_sql($table_name) . "` 
             ORDER BY optimization_time DESC 
             LIMIT %d",
@@ -983,7 +983,7 @@ class FULGID_AIDBO_DB_Analyzer {
         $table_name = $wpdb->prefix . 'ai_db_optimization_history';
         
         // Check if table exists
-        $table_exists = $wpdb->get_var($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $table_exists = $wpdb->get_var($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             "SHOW TABLES LIKE %s",
             $table_name
         ));
@@ -992,6 +992,6 @@ class FULGID_AIDBO_DB_Analyzer {
             return null;
         }
         
-        return $wpdb->get_var("SELECT optimization_time FROM `" . esc_sql($table_name) . "` ORDER BY optimization_time DESC LIMIT 1"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $wpdb->get_var("SELECT optimization_time FROM `" . esc_sql($table_name) . "` ORDER BY optimization_time DESC LIMIT 1"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 }

@@ -121,7 +121,7 @@ class FULGID_AIDBO_DB_Backup {
         $excluded_tables = isset($settings['tables_to_exclude']) ? $settings['tables_to_exclude'] : [];
         
         // Get all WordPress tables
-        $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             "SHOW TABLES LIKE %s",
             $wpdb->esc_like($wpdb->prefix) . '%'
         ));
@@ -197,7 +197,7 @@ class FULGID_AIDBO_DB_Backup {
         $sql = "\n-- Table: $table\n";
         
         // Get table structure
-        $create_table = $wpdb->get_row("SHOW CREATE TABLE `" . esc_sql($table) . "`", ARRAY_N); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+        $create_table = $wpdb->get_row("SHOW CREATE TABLE `" . esc_sql($table) . "`", ARRAY_N); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.DirectDatabaseQuery.SchemaChange
         
         if ($create_table) {
             $sql .= "DROP TABLE IF EXISTS `$table`;\n";
@@ -209,7 +209,7 @@ class FULGID_AIDBO_DB_Backup {
         $offset = 0;
         
         do {
-            $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 $wpdb->prepare(
                     "SELECT * FROM `" . esc_sql($table) . "` LIMIT %d OFFSET %d",
                     $chunk_size,
@@ -322,7 +322,7 @@ class FULGID_AIDBO_DB_Backup {
             $limit
         );
         
-        return $wpdb->get_results($query); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $wpdb->get_results($query); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery
     }
     
     /**
@@ -334,7 +334,7 @@ class FULGID_AIDBO_DB_Backup {
         try {
             // Get backup info
             $table_name = $wpdb->prefix . 'ai_db_backup_history';
-            $backup = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $backup = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SELECT * FROM `" . esc_sql($table_name) . "` WHERE id = %d",
                 $backup_id
             ));
@@ -362,7 +362,7 @@ class FULGID_AIDBO_DB_Backup {
                 $query = trim($query);
                 if (!empty($query) && !preg_match('/^--/', $query)) {
                     // For restore operations, we need to execute raw SQL
-                    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery
                     $result = $wpdb->query($query);
                     if ($result === false) {
                         throw new Exception('Error executing restore query: ' . $wpdb->last_error);
@@ -371,7 +371,7 @@ class FULGID_AIDBO_DB_Backup {
             }
             
             // Update backup as restored
-            $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 $table_name,
                 [
                     'is_restored' => 1,
@@ -411,7 +411,7 @@ class FULGID_AIDBO_DB_Backup {
             $this->max_backups
         );
         
-        $old_backups = $wpdb->get_results($query); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $old_backups = $wpdb->get_results($query); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery
         
         foreach ($old_backups as $backup) {
             // Delete file if it exists
@@ -420,7 +420,7 @@ class FULGID_AIDBO_DB_Backup {
             }
             
             // Remove from database
-            $wpdb->delete( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->delete( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 $table_name,
                 ['id' => $backup->id],
                 ['%d']

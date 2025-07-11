@@ -179,7 +179,7 @@ class FULGID_AIDBO_Optimization_Engine {
             $cached_result = wp_cache_get($cache_key, $this->cache_group);
             
             if (false === $cached_result) {
-                $result = $wpdb->query("OPTIMIZE TABLE `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+                $result = $wpdb->query("OPTIMIZE TABLE `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.DirectDatabaseQuery.SchemaChange
                 // Cache for very short time to avoid re-optimizing same table in same session
                 wp_cache_set($cache_key, $result, $this->cache_group, 60);
                 
@@ -216,7 +216,7 @@ class FULGID_AIDBO_Optimization_Engine {
                     $cached_result = wp_cache_get($cache_key, $this->cache_group);
                     
                     if (false === $cached_result) {
-                        $result = $wpdb->query("ALTER TABLE `" . esc_sql($table) . "` ENGINE=InnoDB"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+                        $result = $wpdb->query("ALTER TABLE `" . esc_sql($table) . "` ENGINE=InnoDB"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.DirectDatabaseQuery.SchemaChange
                         wp_cache_set($cache_key, $result, $this->cache_group, 60);
                         
                         // Immediately clear the analysis cache for this table to force refresh
@@ -286,7 +286,7 @@ class FULGID_AIDBO_Optimization_Engine {
                         $existing_indexes = wp_cache_get($index_cache_key, $this->cache_group);
                         
                         if (false === $existing_indexes) {
-                            $existing_indexes = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                            $existing_indexes = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                                 "SHOW INDEX FROM `" . esc_sql($table) . "`"
                             );
                             // Cache for 1 hour with hour-based key to get fresh data for each optimization session
@@ -317,7 +317,7 @@ class FULGID_AIDBO_Optimization_Engine {
                                 // Create the ALTER TABLE query with validated components
                                 $columns_sql = '`' . implode('`, `', array_map('esc_sql', $composite_columns)) . '`';
                                 $alter_query = "ALTER TABLE `" . esc_sql($table) . "` ADD INDEX `" . esc_sql($index_name) . "` (" . $columns_sql . ")";
-                                $result = $wpdb->query($alter_query); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.NotPrepared
+                                $result = $wpdb->query($alter_query); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.NotPrepared
                             } else {
                                 $result = false;
                             }
@@ -367,7 +367,7 @@ class FULGID_AIDBO_Optimization_Engine {
             $deleted = wp_cache_get($cache_key, $this->cache_group);
             
             if (false === $deleted) {
-                $deleted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                $deleted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                     $wpdb->prepare(
                         "DELETE FROM $wpdb->options 
                         WHERE option_name LIKE %s 
@@ -415,7 +415,7 @@ class FULGID_AIDBO_Optimization_Engine {
             $posts_with_revisions = wp_cache_get($cache_key, $this->cache_group);
             
             if (false === $posts_with_revisions) {
-                $posts_with_revisions = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                $posts_with_revisions = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                     "SELECT post_parent, COUNT(*) as revision_count 
                     FROM $wpdb->posts 
                     WHERE post_type = 'revision' 
@@ -434,7 +434,7 @@ class FULGID_AIDBO_Optimization_Engine {
                 $revisions_to_delete = wp_cache_get($revisions_cache_key, $this->cache_group);
                 
                 if (false === $revisions_to_delete) {
-                    $revisions_to_delete = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                    $revisions_to_delete = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                         $wpdb->prepare(
                             "SELECT ID FROM $wpdb->posts 
                             WHERE post_type = 'revision' 
@@ -477,7 +477,7 @@ class FULGID_AIDBO_Optimization_Engine {
             $deleted = wp_cache_get($cache_key, $this->cache_group);
             
             if (false === $deleted) {
-                $deleted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                $deleted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                     "DELETE FROM $wpdb->posts 
                     WHERE post_status = 'auto-draft' 
                     OR post_status = 'trash'"
@@ -531,7 +531,7 @@ class FULGID_AIDBO_Optimization_Engine {
         $autoload_size = wp_cache_get($cache_key, $this->cache_group);
         
         if (false === $autoload_size) {
-            $autoload_size = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $autoload_size = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SELECT SUM(LENGTH(option_value)) 
                 FROM $wpdb->options 
                 WHERE autoload = 'yes'"
@@ -633,7 +633,7 @@ class FULGID_AIDBO_Optimization_Engine {
         $table_count = 0;
         
         // Get all tables for this database
-        $tables = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $tables = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $wpdb->prepare(
                 "SELECT 
                     table_name,

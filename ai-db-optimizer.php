@@ -108,25 +108,25 @@ function fulgid_ai_db_optimizer_create_tables() {
     dbDelta($sql);
     
     // Check if we need to add the performance_data column to existing table
-    $column_exists = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+    $column_exists = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         "SHOW COLUMNS FROM `" . esc_sql($table_name) . "` LIKE %s",
         'performance_data'
     ));
     
     if (empty($column_exists)) {
         // Use direct query with escaped table name since wpdb::prepare doesn't support table names
-        $wpdb->query("ALTER TABLE `" . esc_sql($table_name) . "` ADD COLUMN performance_data longtext AFTER recommendations"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+        $wpdb->query("ALTER TABLE `" . esc_sql($table_name) . "` ADD COLUMN performance_data longtext AFTER recommendations"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
     
     // Check if we need to add the optimization_actions column
-    $actions_column_exists = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+    $actions_column_exists = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         "SHOW COLUMNS FROM `" . esc_sql($table_name) . "` LIKE %s",
         'optimization_actions'
     ));
     
     if (empty($actions_column_exists)) {
         // Use direct query with escaped table name since wpdb::prepare doesn't support table names
-        $wpdb->query("ALTER TABLE `" . esc_sql($table_name) . "` ADD COLUMN optimization_actions longtext AFTER performance_data"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+        $wpdb->query("ALTER TABLE `" . esc_sql($table_name) . "` ADD COLUMN optimization_actions longtext AFTER performance_data"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
     
     // Create backup history table
@@ -173,7 +173,7 @@ function fulgid_ai_db_optimizer_uninstall() {
     // Validate table name for security (only contains valid characters)
     if (preg_match('/^[a-zA-Z0-9_]+$/', $table_name)) {
         // Use direct query with validated table name since $wpdb->prepare() doesn't work with table names
-        $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($table_name) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($table_name) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
     
     // Remove backup history table
@@ -182,7 +182,7 @@ function fulgid_ai_db_optimizer_uninstall() {
     // Validate table name for security (only contains valid characters)
     if (preg_match('/^[a-zA-Z0-9_]+$/', $backup_table_name)) {
         // Use direct query with validated table name since $wpdb->prepare() doesn't work with table names
-        $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($backup_table_name) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($backup_table_name) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
     
     // Clean up backup files using WP_Filesystem

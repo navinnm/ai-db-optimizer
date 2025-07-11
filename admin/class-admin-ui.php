@@ -411,13 +411,13 @@ public function render_admin_page() {
         
         if (false === $cached_data) {
             // Get database size
-            $db_size = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $db_size = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SELECT SUM(data_length + index_length) as size FROM information_schema.TABLES WHERE table_schema = %s",
                 DB_NAME
             ));
             
             // Get table count  
-            $tables = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $tables = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SHOW TABLES LIKE %s",
                 $wpdb->esc_like($wpdb->prefix) . '%'
             ));
@@ -485,7 +485,7 @@ public function render_admin_page() {
         $score = 100; // Start with perfect score
         
         // Always get fresh overhead data for health score calculation
-        $tables_with_overhead = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $tables_with_overhead = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $wpdb->prepare(
                 "
                 SELECT TABLE_NAME, DATA_FREE
@@ -537,7 +537,7 @@ public function render_admin_page() {
                                 "SHOW INDEX FROM `" . esc_sql($sanitized_table) . "` WHERE Column_name = %s",
                                 $sanitized_column
                             )
-                        ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Required for database optimization analysis
+                        ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                     } else {
                         $index_exists = array(); // Invalid names, assume no index
                     }
@@ -558,7 +558,7 @@ public function render_admin_page() {
         $transient_count = wp_cache_get($transient_cache_key, $this->cache_group);
 
         if (false === $transient_count) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$transient_count = $wpdb->get_var(
 				"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '\_transient\_%' OR option_name LIKE '\_site\_transient\_%'"
 			);
@@ -578,7 +578,7 @@ public function render_admin_page() {
         $revision_count = wp_cache_get($revision_cache_key, $this->cache_group);
 
         if (false === $revision_count) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				$revision_count = $wpdb->get_var(
 					"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'"
 				);
@@ -598,7 +598,7 @@ public function render_admin_page() {
         $autoload_size = wp_cache_get($autoload_cache_key, $this->cache_group);
 
 		if (false === $autoload_size) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$autoload_size = $wpdb->get_var(
 				"SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload = 'yes'"
 			);
@@ -665,7 +665,7 @@ public function render_admin_page() {
         $tables_with_overhead = wp_cache_get($cache_key, $this->cache_group);
         
         if (false === $tables_with_overhead) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $tables_with_overhead = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT TABLE_NAME, DATA_FREE
@@ -710,7 +710,7 @@ public function render_admin_page() {
                     "SHOW INDEX FROM `" . esc_sql($wpdb->posts) . "` WHERE Column_name = %s",
                     'post_type'
                 )
-            ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Required for database optimization analysis
+            ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             wp_cache_set($posts_index_cache_key, $index_check, $this->cache_group, $this->cache_expiry);
         }
         
@@ -727,7 +727,7 @@ public function render_admin_page() {
                     "SHOW INDEX FROM `" . esc_sql($wpdb->postmeta) . "` WHERE Column_name = %s",
                     'meta_key'
                 )
-            ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Required for database optimization analysis
+            ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             wp_cache_set($meta_index_cache_key, $index_check, $this->cache_group, $this->cache_expiry);
         }
         
@@ -755,7 +755,7 @@ public function render_admin_page() {
         $transient_count = wp_cache_get($transient_cache_key, $this->cache_group);
 
         if (false === $transient_count) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				$transient_count = $wpdb->get_var(
 					"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '\_transient\_%' OR option_name LIKE '\_site\_transient\_%'"
 				);
@@ -783,7 +783,7 @@ public function render_admin_page() {
         $revision_count = wp_cache_get($revision_cache_key, $this->cache_group);
 
         if (false === $revision_count) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$revision_count = $wpdb->get_var(
 				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'"
 			);
@@ -811,7 +811,7 @@ public function render_admin_page() {
         $autoload_size = wp_cache_get($autoload_cache_key, $this->cache_group);
 
         if (false === $autoload_size) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$autoload_size = $wpdb->get_var(
 				"SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload = 'yes'"
 			);
@@ -1102,7 +1102,7 @@ public function render_admin_page() {
         $db_size = wp_cache_get($cache_key, $this->cache_group);
         
         if (false === $db_size) {
-            $db_size = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $db_size = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SELECT SUM(data_length + index_length) as size FROM information_schema.TABLES WHERE table_schema = %s",
                 DB_NAME
             ));
@@ -1116,7 +1116,7 @@ public function render_admin_page() {
         if (false === $table_count) {
             $tables = $wpdb->get_results(
                 $wpdb->prepare("SHOW TABLES LIKE %s", $wpdb->prefix . '%')
-            ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Required for database optimization analysis
+            ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $table_count = count($tables);
             wp_cache_set($tables_cache_key, $table_count, $this->cache_group, $this->cache_expiry);
         }
@@ -1156,7 +1156,7 @@ public function render_admin_page() {
         $history = wp_cache_get($cache_key, $this->cache_group);
         
         if (false === $history) {
-            $history = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $history = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SELECT * FROM `" . esc_sql($table_name) . "` ORDER BY optimization_time DESC LIMIT %d",
                 5
             ));
@@ -1218,7 +1218,7 @@ public function render_admin_page() {
         $tables = wp_cache_get($cache_key, $this->cache_group);
         
         if (false === $tables) {
-            $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SHOW TABLES LIKE %s",
                 $wpdb->esc_like($wpdb->prefix) . '%'
             ));
@@ -1235,7 +1235,7 @@ public function render_admin_page() {
             $columns = wp_cache_get($columns_cache_key, $this->cache_group);
             
             if (false === $columns) {
-                $columns = $wpdb->get_results("SHOW COLUMNS FROM `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                $columns = $wpdb->get_results("SHOW COLUMNS FROM `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 wp_cache_set($columns_cache_key, $columns, $this->cache_group, 300);
             }
             foreach ($columns as $column) {
@@ -1255,7 +1255,7 @@ public function render_admin_page() {
             $table_columns = wp_cache_get($table_columns_cache_key, $this->cache_group);
             
             if (false === $table_columns) {
-                $table_columns = $wpdb->get_results("SHOW COLUMNS FROM `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+                $table_columns = $wpdb->get_results("SHOW COLUMNS FROM `" . esc_sql($table) . "`"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 wp_cache_set($table_columns_cache_key, $table_columns, $this->cache_group, 300);
             }
             foreach ($table_columns as $column) {
@@ -1438,7 +1438,7 @@ private function collect_slow_queries() {
         $log_status = wp_cache_get($log_status_cache_key, $this->cache_group);
         
         if (false === $log_status) {
-            $log_status = $wpdb->get_row("SHOW VARIABLES LIKE 'slow_query_log'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            $log_status = $wpdb->get_row("SHOW VARIABLES LIKE 'slow_query_log'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             wp_cache_set($log_status_cache_key, $log_status, $this->cache_group, 3600); // Cache for 1 hour
         }
         
@@ -1450,7 +1450,7 @@ private function collect_slow_queries() {
             $log_file = wp_cache_get($log_file_cache_key, $this->cache_group);
             
             if (false === $log_file) {
-                $log_file = $wpdb->get_row("SHOW VARIABLES LIKE 'slow_query_log_file'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                $log_file = $wpdb->get_row("SHOW VARIABLES LIKE 'slow_query_log_file'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 wp_cache_set($log_file_cache_key, $log_file, $this->cache_group, 3600); // Cache for 1 hour
             }
             $result['log_file'] = $log_file->Value;
@@ -1460,7 +1460,7 @@ private function collect_slow_queries() {
             $log_threshold = wp_cache_get($log_threshold_cache_key, $this->cache_group);
             
             if (false === $log_threshold) {
-                $log_threshold = $wpdb->get_row("SHOW VARIABLES LIKE 'long_query_time'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                $log_threshold = $wpdb->get_row("SHOW VARIABLES LIKE 'long_query_time'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 wp_cache_set($log_threshold_cache_key, $log_threshold, $this->cache_group, 3600); // Cache for 1 hour
             }
             $result['threshold'] = $log_threshold->Value;
@@ -1470,7 +1470,7 @@ private function collect_slow_queries() {
             $slow_queries = wp_cache_get($slow_queries_cache_key, $this->cache_group);
             
             if (false === $slow_queries) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				$slow_queries = $wpdb->get_results(
 					"SELECT * FROM information_schema.PROCESSLIST WHERE TIME > 2 ORDER BY TIME DESC LIMIT 10"
 				);
@@ -1532,7 +1532,7 @@ private function collect_table_statistics() {
         return $cached_data;
     }
     
-    $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+    $tables = $wpdb->get_col($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         "SHOW TABLES LIKE %s",
         $wpdb->esc_like($wpdb->prefix) . '%'
     ));
@@ -1541,7 +1541,7 @@ private function collect_table_statistics() {
     
     foreach ($tables as $table) {
         // Get basic table information
-        $status = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $status = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             "SHOW TABLE STATUS LIKE %s",
             $table
         ));
@@ -1550,7 +1550,7 @@ private function collect_table_statistics() {
         $query_stats = null;
         try {
             // This requires MySQL performance_schema to be enabled
-            $query_stats = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $query_stats = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SELECT COUNT(*) as query_count, SUM(sum_timer_wait)/1000000000000 as total_time
                 FROM performance_schema.table_io_waits_summary_by_table 
                 WHERE OBJECT_SCHEMA = DATABASE() AND OBJECT_NAME = %s",
@@ -1624,7 +1624,7 @@ private function collect_server_information() {
 
         if (false === $variable) {
             // Not in cache, fetch from DB
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $variable = $wpdb->get_row(
                 $wpdb->prepare(
                     "SHOW VARIABLES WHERE Variable_name = %s",
@@ -1669,7 +1669,7 @@ private function collect_server_information() {
 
         if (false === $status_result) {
             // Not in cache, fetch from DB
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $status_result = $wpdb->get_row(
                 $wpdb->prepare(
                     "SHOW STATUS WHERE Variable_name = %s",
@@ -1708,7 +1708,7 @@ private function collect_query_cache_information() {
         $query_cache_type = wp_cache_get($query_cache_type_key, $this->cache_group);
         
         if (false === $query_cache_type) {
-            $query_cache_type = $wpdb->get_row("SHOW VARIABLES LIKE 'query_cache_type'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            $query_cache_type = $wpdb->get_row("SHOW VARIABLES LIKE 'query_cache_type'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             wp_cache_set($query_cache_type_key, $query_cache_type, $this->cache_group, 3600); // Cache for 1 hour
         }
         $cache_info['enabled'] = ($query_cache_type && $query_cache_type->Value != 'OFF');
@@ -1719,7 +1719,7 @@ private function collect_query_cache_information() {
             $cache_size = wp_cache_get($cache_size_key, $this->cache_group);
             
             if (false === $cache_size) {
-                $cache_size = $wpdb->get_row("SHOW VARIABLES LIKE 'query_cache_size'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                $cache_size = $wpdb->get_row("SHOW VARIABLES LIKE 'query_cache_size'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 wp_cache_set($cache_size_key, $cache_size, $this->cache_group, 3600); // Cache for 1 hour
             }
             $cache_info['size'] = $cache_size->Value;
@@ -1740,7 +1740,7 @@ private function collect_query_cache_information() {
             if (false === $status) {
                 $status = [];
                 foreach ($cache_stats as $stat_name) {
-                    $stat_result = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                    $stat_result = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                         "SHOW STATUS WHERE Variable_name = %s",
                         $stat_name
                     ));
@@ -1788,7 +1788,7 @@ private function collect_error_logs() {
     
     try {
         // Try to get MySQL error log location
-		$error_log = $wpdb->get_row("SHOW VARIABLES LIKE 'log_error'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$error_log = $wpdb->get_row("SHOW VARIABLES LIKE 'log_error'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         
         if ($error_log && !empty($error_log->Value)) {
             $error_logs['available'] = true;
@@ -2221,7 +2221,7 @@ private function collect_current_performance_metrics() {
     $start_time = microtime(true);
     
     // Measure database size
-    $db_size_result = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+    $db_size_result = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         "SELECT SUM(data_length + index_length) as size FROM information_schema.TABLES WHERE table_schema = %s",
         DB_NAME
     ));
@@ -2229,7 +2229,7 @@ private function collect_current_performance_metrics() {
     
     // Measure query time with a representative query
     $query_start = microtime(true);
-    $wpdb->get_results("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'publish'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+    $wpdb->get_results("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'publish'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     $query_time = (microtime(true) - $query_start) * 1000; // Convert to milliseconds
     
     // Get additional performance indicators with caching
@@ -2239,7 +2239,7 @@ private function collect_current_performance_metrics() {
     if (false === $table_count) {
         $table_count = count($wpdb->get_results(
             $wpdb->prepare("SHOW TABLES LIKE %s", $wpdb->prefix . '%')
-        )); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Required for database optimization analysis
+        )); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         wp_cache_set($table_count_cache_key, $table_count, 'ai_db_optimizer', 300); // Cache for 5 minutes
     }
     
@@ -2276,7 +2276,7 @@ private function get_mysql_performance_metrics() {
         ];
         
         foreach ($status_vars as $var) {
-            $result = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $result = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
                 "SHOW STATUS WHERE Variable_name = %s",
                 $var
             ));
@@ -2392,13 +2392,13 @@ public function get_db_composition_data() {
     ];
     
     foreach ($table_names as $key => $table_name) {
-        $tables_info[$key] = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+        $tables_info[$key] = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             "SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = %s AND table_name = %s",
             DB_NAME, $table_name
         ) );
     }
 
-    $total_wp_size = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+    $total_wp_size = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         "SELECT SUM(data_length + index_length) FROM information_schema.TABLES WHERE table_schema = %s AND table_name LIKE %s",
         DB_NAME, $wpdb->esc_like( $wpdb->prefix ) . '%'
     ) );
@@ -2490,7 +2490,7 @@ public function ajax_get_composition_data() {
     global $wpdb;
     
     // Get all tables
-     $tables = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+     $tables = $wpdb->get_results($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         "SELECT TABLE_NAME, 
             DATA_LENGTH + INDEX_LENGTH as total_size
         FROM information_schema.TABLES 
