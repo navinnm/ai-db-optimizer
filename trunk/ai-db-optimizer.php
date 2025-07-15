@@ -11,7 +11,7 @@
  * Plugin Name: AI Database Optimizer
  * Plugin URI:  https://fulgid.in/ai-database-optimizer
  * Description: AI-based WordPress database optimization plugin that analyzes and optimizes your database for better performance.
- * Version:     1.1.4
+ * Version:     1.1.5
  * Author:      Fulgid
  * Author URI:  https://fulgid.in
  * Text Domain: ai-database-optimizer
@@ -28,7 +28,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('FULGID_AI_DATABASE_OPTIMIZER_VERSION', '1.1.4');
+define('FULGID_AI_DATABASE_OPTIMIZER_VERSION', '1.1.5');
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('FULGID_AI_DATABASE_OPTIMIZER_PLUGIN_BASENAME', plugin_basename(__FILE__));

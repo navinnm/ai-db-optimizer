@@ -3,7 +3,7 @@ Contributors: Fulgid
 Tags: database, optimization, ai, backup, performance
 Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: 1.1.4
+Stable tag: 1.1.5
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -81,16 +81,15 @@ Yes! Every optimization operation is preceded by an automatic backup. You can ea
 
 == Screenshots ==
 
-1. Dashboard with database status overview and health indicators
-2. Real-time performance monitoring with interactive charts  
-3. Analysis results showing optimization opportunities
-4. Backup management interface with restore options
-5. Optimization settings configuration panel
-6. Detailed optimization history and performance metrics
+1. Comprehensive Database Health Dashboard with Optimization Status and Tools
+2. Real-Time Performance Monitoring with Query Time and DB Size Trends
+3. AI-Generated Optimization Insights with Actionable Recommendations
+4. Interactive Database Composition Chart Showing Table-Wise Storage Distribution
+5. Flexible Optimization Settings Panel with Auto-Scheduling and Email Alerts
 
 == Changelog ==
 
-= 1.1.4 =
+= 1.1.5 =
 * SECURITY: Fixed SQL injection vulnerabilities by properly using wpdb->prepare() for all user inputs
 * SECURITY: Enhanced input validation with regex checks for table/column names  
 * SECURITY: Added proper caching to all direct database queries per WordPress standards
